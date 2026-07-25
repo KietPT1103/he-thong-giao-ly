@@ -7,11 +7,13 @@ import ChildrenView from '../views/ChildrenView.vue';
 import LoginView from '../views/LoginView.vue';
 import ForbiddenView from '../views/ForbiddenView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
+import LandingPage from '../views/LandingPage.vue';
 import { useAuthStore } from '../stores/authStore';
 
 const routes: RouteRecordRaw[] = [
+ {path:'/',component:LandingPage,meta:{public:true,title:'Hành Trang Đức Tin'}},
  {path:'/login',component:LoginView,meta:{public:true,title:'Đăng nhập'}},
- {path:'/',component:DashboardView,meta:{requiresAuth:true,title:'Tổng quan'}},
+ {path:'/dashboard',component:DashboardView,meta:{requiresAuth:true,title:'Tổng quan'}},
  {path:'/lop-hoc',component:ClassesView,meta:{requiresAuth:true,title:'Lớp học'}},
  {path:'/diem-danh',component:AttendanceView,meta:{requiresAuth:true,title:'Điểm danh'}},
  {path:'/bai-tap',component:AssignmentsView,meta:{requiresAuth:true,title:'Bài tập'}},
@@ -21,5 +23,5 @@ const routes: RouteRecordRaw[] = [
  {path:'/:pathMatch(.*)*',component:NotFoundView,meta:{public:true,title:'Không tìm thấy trang'}},
 ];
 const router=createRouter({history:createWebHistory(),routes});
-router.beforeEach(async(to)=>{const auth=useAuthStore();if(!auth.initialized)await auth.initialize();if(to.meta.requiresAuth&&!auth.isAuthenticated)return {path:'/login',query:{redirect:to.fullPath}};if(to.path==='/login'&&auth.isAuthenticated)return '/';return true;});
+router.beforeEach(async(to)=>{const auth=useAuthStore();if(!auth.initialized)await auth.initialize();if(to.meta.requiresAuth&&!auth.isAuthenticated)return {path:'/login',query:{redirect:to.fullPath}};if(to.path==='/login'&&auth.isAuthenticated)return '/dashboard';return true;});
 export default router;
