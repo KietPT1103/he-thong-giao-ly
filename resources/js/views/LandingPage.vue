@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, type Component } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue';
+import { useAuthStore } from '../stores/authStore';
+import { dashboardFor } from '../router';
 import {
   ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, Check, ChevronRight,
   Church, ClipboardCheck, Clock3, Facebook, GraduationCap, LocateFixed, LogIn,
@@ -49,6 +51,9 @@ const notices = [
 ];
 
 const open = ref(false);
+const auth = useAuthStore();
+const systemDestination = computed(() => auth.isAuthenticated ? dashboardFor(auth.roles) : '/login');
+const systemLabel = computed(() => auth.isAuthenticated ? 'Vào hệ thống' : 'Đăng nhập');
 function toggle(value: boolean) {
   open.value = value;
   document.body.style.overflow = value ? 'hidden' : '';
@@ -74,7 +79,7 @@ function onKey(event: KeyboardEvent) {
         <nav class="desktop-nav" aria-label="Điều hướng chính">
           <a v-for="[href, label] in nav" :key="href" :href="href">{{ label }}</a>
         </nav>
-        <RouterLink class="header-login" to="/login"><LogIn :size="15"/>Đăng nhập</RouterLink>
+        <RouterLink class="header-login" :to="systemDestination"><LogIn :size="15"/>{{systemLabel}}</RouterLink>
         <button class="menu-button" aria-label="Mở menu" @click="toggle(true)"><Menu/></button>
       </div>
     </header>
@@ -84,7 +89,7 @@ function onKey(event: KeyboardEvent) {
       <aside>
         <div class="drawer-top"><span class="brand"><span class="brand-mark"><img :src="'/images/02_individual_assets/logo-icon.png'" alt=""/></span><span><strong>Hành Trang Đức Tin</strong><small>Giáo xứ An Bình</small></span></span><button @click="toggle(false)"><X/></button></div>
         <nav><a v-for="[href, label] in nav" :key="href" :href="href" @click="toggle(false)">{{ label }}<ChevronRight :size="16"/></a></nav>
-        <RouterLink to="/login" class="primary-button" @click="toggle(false)"><LogIn :size="16"/>Đăng nhập</RouterLink>
+        <RouterLink :to="systemDestination" class="primary-button" @click="toggle(false)"><LogIn :size="16"/>{{systemLabel}}</RouterLink>
       </aside>
     </div>
 
@@ -99,7 +104,7 @@ function onKey(event: KeyboardEvent) {
             <h2>Đồng hành trong hành trình<br>lớn lên trong đức tin</h2>
             <p>Hệ thống quản lý học giáo lý giúp Giáo xứ An Bình quản lý lớp học, theo dõi tiến độ và kết nối giáo lý viên, phụ huynh và thiếu nhi một cách dễ dàng, hiệu quả và yêu thương.</p>
             <div class="hero-actions">
-              <RouterLink to="/login" class="primary-button">Đăng nhập ngay<ArrowRight :size="17"/></RouterLink>
+              <RouterLink :to="systemDestination" class="primary-button">{{auth.isAuthenticated?'Vào hệ thống':'Đăng nhập ngay'}}<ArrowRight :size="17"/></RouterLink>
               <a href="#chuc-nang" class="secondary-button">Tìm hiểu thêm<Play :size="15"/></a>
             </div>
           </div>
@@ -158,14 +163,14 @@ function onKey(event: KeyboardEvent) {
       <section id="tin-tuc" class="section news-section">
         <div class="page-width news-grid">
           <div class="news-box">
-            <div class="box-heading"><h2>Lịch sinh hoạt sắp tới</h2><a href="#">Xem tất cả</a></div>
+            <div class="box-heading"><h2>Lịch sinh hoạt sắp tới</h2><RouterLink to="/events">Xem tất cả</RouterLink></div>
             <article v-for="event in events" :key="event.day">
               <time><b>{{ event.day }}</b><small>{{ event.month }}</small></time>
               <div><h3>{{ event.title }}</h3><p><Clock3 :size="13"/>{{ event.time }} <span><MapPin :size="13"/>{{ event.place }}</span></p></div>
             </article>
           </div>
           <div class="news-box">
-            <div class="box-heading"><h2>Thông báo mới</h2><a href="#">Xem tất cả</a></div>
+            <div class="box-heading"><h2>Thông báo mới</h2><RouterLink to="/news">Xem tất cả</RouterLink></div>
             <article v-for="notice in notices" :key="notice.title">
               <span class="notice-icon" :style="{ background: notice.tone, color: notice.color }"><component :is="notice.icon" :size="21"/></span>
               <div><h3>{{ notice.title }} <em v-if="notice.badge">{{ notice.badge }}</em></h3><p>{{ notice.text }}</p><small>2 giờ trước</small></div>
@@ -177,7 +182,7 @@ function onKey(event: KeyboardEvent) {
       <section class="cta">
         <div class="page-width cta-inner">
           <img class="cta-family" :src="'/images/02_individual_assets/cta-jesus-with-children.png'" alt="Chúa Giêsu đồng hành cùng thiếu nhi">
-          <div><h2>Cùng nhau xây dựng một cộng đoàn<br>đức tin vững mạnh</h2><p>Hành Trang Đức Tin - Người bạn đồng hành tin cậy của Giáo xứ An Bình</p><RouterLink to="/login" class="cta-button">Đăng nhập ngay<ArrowRight :size="17"/></RouterLink></div>
+          <div><h2>Cùng nhau xây dựng một cộng đoàn<br>đức tin vững mạnh</h2><p>Hành Trang Đức Tin - Người bạn đồng hành tin cậy của Giáo xứ An Bình</p><RouterLink :to="systemDestination" class="cta-button">{{auth.isAuthenticated?'Vào hệ thống':'Đăng nhập ngay'}}<ArrowRight :size="17"/></RouterLink></div>
           <img class="cta-church" :src="'/images/02_individual_assets/church-hero.png'" alt="">
         </div>
       </section>
@@ -185,10 +190,10 @@ function onKey(event: KeyboardEvent) {
 
     <footer id="lien-he">
       <div class="page-width footer-grid">
-        <div><span class="footer-brand"><img :src="'/images/02_individual_assets/logo-icon.png'" alt=""><span><b>Hành Trang Đức Tin</b><small>Giáo xứ An Bình</small></span></span><p>Đồng hành cùng giáo lý viên, phụ huynh và thiếu nhi trên hành trình lớn lên trong đức tin và nhân ái.</p><div class="socials"><a href="#" aria-label="Facebook"><Facebook/></a><a href="#" aria-label="Youtube"><Youtube/></a><a href="mailto:giaoxuanbinh@gmail.com" aria-label="Email"><Mail/></a><a href="tel:02812345678" aria-label="Điện thoại"><Phone/></a></div></div>
+        <div><span class="footer-brand"><img :src="'/images/02_individual_assets/logo-icon.png'" alt=""><span><b>Hành Trang Đức Tin</b><small>Giáo xứ An Bình</small></span></span><p>Đồng hành cùng giáo lý viên, phụ huynh và thiếu nhi trên hành trình lớn lên trong đức tin và nhân ái.</p><div class="socials"><a href="mailto:giaoxuanbinh@gmail.com" aria-label="Email"><Mail/></a><a href="tel:02812345678" aria-label="Điện thoại"><Phone/></a></div></div>
         <div><h3>Thông tin liên hệ</h3><p><MapPin :size="17"/>Giáo xứ An Bình<br>Số 123, Đường An Bình,<br>P. An Lạc, TP. Hồ Chí Minh</p><p><Phone :size="17"/>(028) 1234 5678</p><p><Mail :size="17"/>giaoxuanbinh@gmail.com</p><p><LocateFixed :size="17"/>www.giaoxuanbinh.org</p></div>
-        <div><h3>Liên kết nhanh</h3><nav><a href="#trang-chu">Trang chủ</a><a href="#gioi-thieu">Giới thiệu</a><a href="#chuc-nang">Chức năng</a><a href="#tin-tuc">Tin tức</a><a href="#">Hướng dẫn</a><a href="#lien-he">Liên hệ</a></nav></div>
-        <div class="footer-support"><h3>Hỗ trợ</h3><nav><a href="#">Câu hỏi thường gặp</a><a href="#">Hướng dẫn sử dụng</a><a href="#">Chính sách bảo mật</a><a href="#">Điều khoản sử dụng</a></nav></div>
+        <div><h3>Liên kết nhanh</h3><nav><a href="#trang-chu">Trang chủ</a><a href="#gioi-thieu">Giới thiệu</a><a href="#chuc-nang">Chức năng</a><RouterLink to="/news">Tin tức</RouterLink><a href="#lien-he">Liên hệ</a></nav></div>
+        <div class="footer-support"><h3>Hỗ trợ</h3><nav><span title="Đang phát triển">Câu hỏi thường gặp</span><span title="Đang phát triển">Hướng dẫn sử dụng</span><span title="Đang phát triển">Chính sách bảo mật</span><span title="Đang phát triển">Điều khoản sử dụng</span></nav></div>
       </div>
       <p class="copyright">© {{ new Date().getFullYear() }} Giáo xứ An Bình. All rights reserved.</p>
     </footer>
@@ -205,7 +210,7 @@ function onKey(event: KeyboardEvent) {
 footer{background:linear-gradient(100deg,#02386e,#002b59);color:#fff}.footer-grid{display:grid;grid-template-columns:1.3fr 1.2fr .8fr .8fr;gap:42px;padding-top:16px}.footer-grid>div+div{border-left:1px solid #ffffff35;padding-left:28px}.footer-brand{display:flex;align-items:center;gap:9px}.footer-brand b,.footer-brand small{display:block}.footer-brand b{font-size:11px}.footer-brand small{font-size:7px}.footer-grid p{display:flex;gap:8px;font-size:7px;line-height:1.6;margin-top:9px;color:#e3f0ff}.footer-grid h3{font-size:9px;margin-bottom:8px}.socials{display:flex;gap:8px;margin-top:10px}.socials a{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:#145895}.socials svg{width:12px}.footer-grid nav{display:grid;gap:5px;font-size:7px;color:#e3f0ff}.copyright{text-align:center!important;font-size:6px!important;margin:6px 0 0!important;padding-bottom:5px}
 @media(max-width:900px){.desktop-nav,.header-login{display:none}.menu-button{display:block}.hero{height:402px}.hero-grid{grid-template-columns:1fr}.hero-art{background-image:linear-gradient(90deg,rgba(247,252,255,.97) 0 44%,rgba(247,252,255,.2) 76%),url('/images/home-hero-parish.png');background-position:25% bottom}.hero-copy{margin-left:0;width:50%}.dashboard-preview{display:none}.feature-grid{grid-template-columns:repeat(3,1fr)}.news-grid{margin-inline:auto}.footer-grid{grid-template-columns:repeat(3,1fr)}.footer-support{display:none}}
 @media(max-width:640px){.page-width{width:min(100% - 28px,680px)}.site-header{height:74px}.brand-mark{width:47px;height:47px}.brand strong{font-size:17px}.brand small{font-size:11px}.hero{height:410px}.hero-art{background-position:26% 95%;background-size:auto 275px;background-repeat:no-repeat;background-color:#eef9ff}.hero-grid{padding-top:42px}.hero-copy{width:100%}.hero-copy h1{font-size:30px}.hero-copy h2{font-size:21px;width:58%}.hero-copy p{font-size:13px;width:47%;line-height:1.65}.hero-actions{margin-top:27px}.primary-button,.secondary-button{padding:12px 18px}.stats-wrap{margin-top:14px}.stats-grid{grid-template-columns:repeat(4,1fr);width:calc(100% - 36px)}.stats-grid article{padding:14px 8px;gap:6px;justify-content:center}.round-icon{width:35px;height:35px}.round-icon svg{width:23px}.stats-grid b{font-size:20px}.stats-grid strong{font-size:9px}.stats-grid small{font-size:7px}.section{padding-top:20px}.section-title{font-size:18px}.feature-grid{grid-template-columns:repeat(3,1fr);gap:14px}.feature-card{min-height:155px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center}.feature-icon{width:52px;height:52px}.feature-card h3{font-size:13px}.feature-card p{font-size:10px}.audience-grid{gap:7px}.audience-grid article{height:132px;display:block;text-align:center;padding:7px 4px}.avatar{display:block;font-size:44px}.audience-grid h3{font-size:10px}.audience-grid ul{font-size:7px;text-align:left;margin-left:8px}.process-heading{text-align:center;margin:23px 0 10px}.process-card{padding:13px 10px}.process-card article{gap:5px}.step-number{width:24px;height:24px}.step-icon{width:34px;height:34px}.process-card b{font-size:8px}.process-card small{font-size:6px}.news-grid{grid-template-columns:1fr 1fr;gap:14px}.news-box{padding:12px}.box-heading h2{font-size:11px}.news-box article{min-height:67px}.news-box h3{font-size:8px}.news-box p{font-size:6.5px;line-height:1.45;display:block}.cta-inner{height:173px;border-radius:26px 26px 0 0;gap:5px;padding:15px}.cta-family{font-size:33px;align-self:flex-end}.cta-family span{font-size:21px}.cta h2{font-size:16px}.cta p{font-size:9px}.cta-church{width:80px}.footer-grid{grid-template-columns:1fr 1.15fr .8fr;gap:18px;padding:28px 20px 5px;width:100%}.footer-grid>div+div{padding-left:18px}.footer-brand b{font-size:15px}.footer-brand small{font-size:10px}.footer-grid p,.footer-grid nav{font-size:9px}.footer-grid h3{font-size:11px}.copyright{font-size:9px!important;padding:12px!important}}
-@media(max-width:430px){.hero-copy h2{width:70%}.hero-copy p{width:58%;font-size:12px}.hero-art{background-position:19% bottom}.feature-grid{gap:8px}.feature-card{min-height:148px}.audience-grid{grid-template-columns:repeat(2,1fr)}.process-card{display:grid;grid-template-columns:1fr}.step-arrow{display:none}.process-card article{padding:8px}.news-grid{grid-template-columns:1fr}.cta-family,.cta-church{display:none}.footer-grid{grid-template-columns:1fr}.footer-grid>div+div{border-left:0;padding-left:0}.footer-grid>div:nth-child(3){display:none}}
+@media(max-width:430px){.hero-copy h2{width:70%}.hero-copy p{width:58%;font-size:12px}.hero-art{background-position:19% bottom}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:calc(100% - 28px)}.stats-grid article{justify-content:flex-start;padding:12px}.stats-grid article+article:before{display:none}.feature-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.feature-card{min-height:148px}.audience-grid{grid-template-columns:repeat(2,1fr)}.process-card{display:grid;grid-template-columns:1fr}.step-arrow{display:none}.process-card article{padding:8px}.news-grid{grid-template-columns:1fr}.cta-family,.cta-church{display:none}.footer-grid{grid-template-columns:1fr}.footer-grid>div+div{border-left:0;padding-left:0}.footer-grid>div:nth-child(3){display:none}}
 
 /* Desktop proportions from the supplied home-pc reference. */
 @media(min-width:901px){
@@ -370,7 +375,7 @@ footer{background:linear-gradient(100deg,#02386e,#002b59);color:#fff}.footer-gri
     background-size:cover;
   }
   .hero-church{left:-125px;bottom:-125px;width:720px;height:auto}
-  .hero-children{left:55px;bottom:-148px;width:650px;height:auto}
+  .hero-children{left:55px;bottom:-235px;width:650px;height:auto}
   .hero-copy{z-index:3;margin-left:10%;padding-left:155px}
   .dashboard-preview{
     position:relative;
@@ -400,6 +405,10 @@ footer{background:linear-gradient(100deg,#02386e,#002b59);color:#fff}.footer-gri
 @media(max-width:640px){
   .hero-church{right:-170px;bottom:-95px;width:500px}
   .hero-children{right:-105px;bottom:-90px;width:430px}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:calc(100% - 28px)}
+  .stats-grid article{justify-content:flex-start;padding:12px}
+  .stats-grid article+article:before{display:none}
+  .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .avatar{width:100%;height:72px}
   .cta-family{width:145px;height:160px}
   .cta-church{width:100px;height:160px}

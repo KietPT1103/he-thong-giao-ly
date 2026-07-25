@@ -3,8 +3,10 @@ use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\{ClassController,TeacherController};
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminDirectoryController;
 
-Route::prefix('auth')->group(function(){
+Route::prefix('auth')->middleware('web')->group(function(){
  Route::post('login',[AuthController::class,'login'])->middleware('throttle:login');
  Route::post('forgot-password',[AuthController::class,'forgot'])->middleware('throttle:6,1');
  Route::post('reset-password',[AuthController::class,'reset'])->middleware('throttle:6,1');
@@ -15,6 +17,15 @@ Route::prefix('auth')->group(function(){
  });
 });
 Route::middleware('auth:sanctum')->group(function(){
+ Route::get('admin/dashboard',AdminDashboardController::class);
+ Route::prefix('admin')->group(function(){
+  Route::get('parishes',[AdminDirectoryController::class,'parishes']);
+  Route::get('teachers',[AdminDirectoryController::class,'teachers']);
+  Route::get('parents',[AdminDirectoryController::class,'parents']);
+  Route::get('children',[AdminDirectoryController::class,'children']);
+  Route::get('classes',[AdminDirectoryController::class,'classes']);
+  Route::get('announcements',[AdminDirectoryController::class,'announcements']);
+ });
  Route::get('teacher/dashboard',[TeacherController::class,'dashboard']);
  Route::get('teachers/me/classes',[TeacherController::class,'classes']);
  Route::get('classes/{class}',[ClassController::class,'show']);

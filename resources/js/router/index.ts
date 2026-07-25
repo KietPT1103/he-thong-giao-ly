@@ -1,27 +1,81 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import type { Component } from 'vue';
+import { useAuthStore } from '../stores/authStore';
+import LandingPage from '../views/LandingPage.vue';
+import LoginView from '../views/LoginView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import ClassesView from '../views/ClassesView.vue';
 import AttendanceView from '../views/AttendanceView.vue';
-import AssignmentsView from '../views/AssignmentsView.vue';
 import ChildrenView from '../views/ChildrenView.vue';
-import LoginView from '../views/LoginView.vue';
+import ScheduleView from '../views/ScheduleView.vue';
+import AssignmentsView from '../views/AssignmentsView.vue';
+import ModulePendingView from '../views/ModulePendingView.vue';
+import AdminDashboardView from '../views/AdminDashboardView.vue';
+import AdminDirectoryView from '../views/AdminDirectoryView.vue';
 import ForbiddenView from '../views/ForbiddenView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
-import LandingPage from '../views/LandingPage.vue';
-import { useAuthStore } from '../stores/authStore';
 
-const routes: RouteRecordRaw[] = [
- {path:'/',component:LandingPage,meta:{public:true,title:'Hành Trang Đức Tin'}},
- {path:'/login',component:LoginView,meta:{public:true,title:'Đăng nhập'}},
- {path:'/dashboard',component:DashboardView,meta:{requiresAuth:true,title:'Tổng quan'}},
- {path:'/lop-hoc',component:ClassesView,meta:{requiresAuth:true,title:'Lớp học'}},
- {path:'/diem-danh',component:AttendanceView,meta:{requiresAuth:true,title:'Điểm danh'}},
- {path:'/bai-tap',component:AssignmentsView,meta:{requiresAuth:true,title:'Bài tập'}},
- {path:'/thieu-nhi',component:ChildrenView,meta:{requiresAuth:true,title:'Thiếu nhi'}},
- {path:'/lich-hoc',component:ClassesView,meta:{requiresAuth:true,title:'Lịch học'}},
- {path:'/403',component:ForbiddenView,meta:{public:true,title:'Không có quyền'}},
- {path:'/:pathMatch(.*)*',component:NotFoundView,meta:{public:true,title:'Không tìm thấy trang'}},
+declare module 'vue-router' {
+    interface RouteMeta { public?:boolean; requiresAuth?:boolean; title?:string; roles?:string[]; permission?:string; module?:string }
+}
+
+const protectedRoute=(path:string,title:string,roles:string[],component:Component=ModulePendingView,permission?:string):RouteRecordRaw=>({
+    path,component,meta:{requiresAuth:true,title,roles,permission},
+});
+const admin=(path:string,title:string)=>protectedRoute(`/admin${path}`,title,['admin']);
+const parent=(path:string,title:string)=>protectedRoute(`/parent${path}`,title,['parent']);
+const child=(path:string,title:string)=>protectedRoute(`/child${path}`,title,['child']);
+
+const routes:RouteRecordRaw[]=[
+    {path:'/',component:LandingPage,meta:{public:true,title:'Hành Trang Đức Tin'}},
+    {path:'/login',component:LoginView,meta:{public:true,title:'Đăng nhập'}},
+    {path:'/news',component:ModulePendingView,meta:{public:true,title:'Tin tức'}},
+    {path:'/events',component:ModulePendingView,meta:{public:true,title:'Sự kiện'}},
+
+    protectedRoute('/admin','Tổng quan',['admin'],AdminDashboardView),
+    ...[['parishes','Giáo xứ'],['teachers','Giáo lý viên'],['parents','Phụ huynh'],['children','Thiếu nhi'],['classes','Lớp học'],['announcements','Thông báo']].map(([module,title])=>({
+        path:`/admin/${module}`,component:AdminDirectoryView,meta:{requiresAuth:true,title,roles:['admin'],module},
+    })),
+    ...[['/mass-events','Thánh lễ và ngày lễ'],['/qr-sessions','Phiên quét QR'],['/attendance','Lịch sử tham dự'],['/points','Điểm thưởng'],['/reports','Báo cáo'],['/settings','Cài đặt']].map(([path,title])=>admin(path,title)),
+
+    protectedRoute('/teacher','Tổng quan',['teacher'],DashboardView),
+    protectedRoute('/teacher/classes','Lớp của tôi',['teacher'],ClassesView,'view-classes'),
+    protectedRoute('/teacher/classes/:id','Chi tiết lớp',['teacher'],ClassesView,'view-classes'),
+    protectedRoute('/teacher/children','Thiếu nhi',['teacher'],ChildrenView,'view-children'),
+    protectedRoute('/teacher/schedule','Lịch dạy',['teacher'],ScheduleView,'view-classes'),
+    protectedRoute('/teacher/attendance','Điểm danh lớp',['teacher'],AttendanceView,'view-attendance'),
+    protectedRoute('/teacher/assignments','Bài tập',['teacher'],AssignmentsView),
+    ...[['/qr-scanner','Điểm danh QR'],['/mass-attendance','Lịch sử đi lễ'],['/lessons','Bài học'],['/submissions','Bài nộp cần chấm'],['/leave-requests','Đơn xin nghỉ'],['/announcements','Thông báo lớp'],['/reports','Báo cáo lớp'],['/profile','Hồ sơ']].map(([path,title])=>protectedRoute(`/teacher${path}`,title,['teacher'])),
+
+    parent('', 'Tổng quan'),
+    ...[['/children','Các con của tôi'],['/children/:id','Hồ sơ thiếu nhi'],['/schedule','Lịch học'],['/mass-attendance','Lịch sử tham dự'],['/assignments','Bài tập'],['/points','Điểm thưởng'],['/leave-requests','Đơn xin nghỉ'],['/notifications','Thông báo'],['/news','Tin tức'],['/profile','Hồ sơ']].map(([path,title])=>parent(path,title)),
+
+    child('', 'Tổng quan'),
+    ...[['/schedule','Lịch học'],['/mass','Thánh lễ'],['/lessons','Bài học'],['/assignments','Bài tập'],['/points','Điểm thưởng'],['/badges','Huy hiệu'],['/notifications','Thông báo'],['/my-qr','Mã QR của tôi'],['/profile','Cá nhân']].map(([path,title])=>child(path,title)),
+
+    {path:'/dashboard',redirect:()=>dashboardFor(useAuthStore().roles)},
+    {path:'/lop-hoc',redirect:'/teacher/classes'},{path:'/diem-danh',redirect:'/teacher/attendance'},
+    {path:'/bai-tap',redirect:'/teacher/assignments'},{path:'/thieu-nhi',redirect:'/teacher/children'},
+    {path:'/lich-hoc',redirect:'/teacher/schedule'},
+    {path:'/403',component:ForbiddenView,meta:{public:true,title:'Không có quyền'}},
+    {path:'/:pathMatch(.*)*',component:NotFoundView,meta:{public:true,title:'Không tìm thấy trang'}},
 ];
-const router=createRouter({history:createWebHistory(),routes});
-router.beforeEach(async(to)=>{const auth=useAuthStore();if(!auth.initialized)await auth.initialize();if(to.meta.requiresAuth&&!auth.isAuthenticated)return {path:'/login',query:{redirect:to.fullPath}};if(to.path==='/login'&&auth.isAuthenticated)return '/dashboard';return true;});
+
+export function dashboardFor(roles:string[]){
+    if(roles.includes('admin'))return '/admin';
+    if(roles.includes('teacher'))return '/teacher';
+    if(roles.includes('parent'))return '/parent';
+    if(roles.includes('child'))return '/child';
+    return '/403';
+}
+const router=createRouter({history:createWebHistory(),routes,scrollBehavior:()=>({top:0})});
+router.beforeEach(async(to)=>{
+    const auth=useAuthStore();if(!auth.initialized)await auth.initialize();
+    if(to.meta.requiresAuth&&!auth.isAuthenticated)return {path:'/login',query:{redirect:to.fullPath}};
+    if(to.path==='/login'&&auth.isAuthenticated)return dashboardFor(auth.roles);
+    if(to.meta.roles?.length&&!to.meta.roles.some(role=>auth.hasRole(role)))return '/403';
+    if(to.meta.permission&&!auth.hasPermission(to.meta.permission))return '/403';
+    document.title=`${to.meta.title||'Hệ thống'} · Hành Trang Đức Tin`;
+    return true;
+});
 export default router;
