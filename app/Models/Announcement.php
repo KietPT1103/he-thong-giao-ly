@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Announcement extends Model { protected $fillable=['parish_id','created_by','title','body','importance']; public function recipients(){return $this->belongsToMany(User::class,'announcement_recipients')->withPivot('read_at')->withTimestamps();} }

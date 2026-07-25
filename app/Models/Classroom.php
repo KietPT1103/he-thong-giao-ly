@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Classroom extends Model { protected $fillable=['parish_id','name','capacity']; public function parish(){return $this->belongsTo(Parish::class);} }

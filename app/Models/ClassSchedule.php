@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class ClassSchedule extends Model { protected $fillable=['catechism_class_id','weekday','starts_at','ends_at','starts_on','ends_on']; public function catechismClass(){return $this->belongsTo(CatechismClass::class);} }
