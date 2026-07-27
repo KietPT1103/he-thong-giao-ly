@@ -1,2 +1,36 @@
-<script setup lang="ts">import {BookOpen,LockKeyhole} from 'lucide-vue-next';</script>
-<template><div><header><h2 class="text-xl font-bold text-ink">Bài tập</h2><p class="mt-1 text-sm text-slate-500">Giao bài, theo dõi bài nộp và chấm điểm.</p></header><section class="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><span class="mx-auto grid size-14 place-items-center rounded-2xl bg-primary-50 text-primary-600"><BookOpen class="size-7"/></span><h3 class="mt-4 font-semibold text-ink">Module bài tập chưa được mở</h3><p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">Backend bài tập, bài nộp và policy theo phạm vi lớp sẽ được xây dựng ở Phase 4. Nút giao bài được khóa để không tạo thao tác giả.</p><button disabled title="Đang phát triển" class="mt-5 inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 text-sm font-semibold text-slate-500"><LockKeyhole class="size-4"/>Giao bài tập · Đang phát triển</button></section></div></template>
+<script setup lang="ts">
+import { BookOpen, LockKeyhole } from "lucide-vue-next";
+</script>
+<template>
+    <div>
+        <header>
+            <h2 class="text-xl font-bold text-ink">Bài tập</h2>
+            <p class="mt-1 text-sm text-slate-500">
+                Giao bài, theo dõi bài nộp và chấm điểm.
+            </p>
+        </header>
+        <section
+            class="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"
+        >
+            <span
+                class="mx-auto grid size-14 place-items-center rounded-2xl bg-primary-50 text-primary-600"
+                ><BookOpen class="size-7"
+            /></span>
+            <h3 class="mt-4 font-semibold text-ink">
+                Module bài tập chưa được mở
+            </h3>
+            <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+                Backend bài tập, bài nộp và policy theo phạm vi lớp sẽ được xây
+                dựng ở Phase 4. Nút giao bài được khóa để không tạo thao tác
+                giả.
+            </p>
+            <button
+                disabled
+                title="Đang phát triển"
+                class="mt-5 inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 text-sm font-semibold text-slate-500"
+            >
+                <LockKeyhole class="size-4" />Giao bài tập · Đang phát triển
+            </button>
+        </section>
+    </div>
+</template>

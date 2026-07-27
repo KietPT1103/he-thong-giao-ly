@@ -1,7 +1,126 @@
 <script setup>
-import {onMounted,ref} from 'vue'; import {ArrowUpRight,CalendarClock,CheckCircle2,ClipboardCheck,Users} from 'lucide-vue-next'; import client from '../api/client';
-const data=ref(null),loading=ref(true),error=ref('');
-async function load(){loading.value=true;error.value='';try{const r=await client.get('/teacher/dashboard');data.value=r.data.data;}catch{error.value='Không thể tải tổng quan. Vui lòng thử lại.';}finally{loading.value=false;}}
+import { onMounted, ref } from "vue";
+import {
+    ArrowUpRight,
+    CalendarClock,
+    CheckCircle2,
+    ClipboardCheck,
+    Users,
+} from "lucide-vue-next";
+import client from "../api/client";
+const data = ref(null),
+    loading = ref(true),
+    error = ref("");
+async function load() {
+    loading.value = true;
+    error.value = "";
+    try {
+        const r = await client.get("/teacher/dashboard");
+        data.value = r.data.data;
+    } catch {
+        error.value = "Không thể tải tổng quan. Vui lòng thử lại.";
+    } finally {
+        loading.value = false;
+    }
+}
 onMounted(load);
 </script>
-<template><div class="space-y-7"><div v-if="loading" class="animate-pulse space-y-5"><div class="h-40 rounded-2xl bg-primary-100"></div><div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div v-for="i in 4" class="h-32 rounded-2xl bg-slate-200"></div></div></div><div v-else-if="error" class="rounded-2xl border border-rose-200 bg-white p-8 text-center"><p class="text-slate-600">{{error}}</p><button @click="load" class="mt-4 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white">Thử lại</button></div><template v-else><section class="overflow-hidden rounded-2xl bg-primary-600 px-6 py-7 text-white sm:px-8"><p class="text-sm text-blue-100">Không gian giáo lý viên</p><div class="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h2 class="text-2xl font-bold">Chào buổi sáng, {{data.teacher.name}}!</h2><p class="mt-2 text-sm text-blue-100">Theo dõi lớp học và điểm danh thật dễ dàng.</p></div><RouterLink to="/diem-danh" class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-primary-700">Điểm danh nhanh <ArrowUpRight class="size-4"/></RouterLink></div></section><section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><article v-for="item in [[data.summary.child_count,'Thiếu nhi đang học',Users],[data.summary.class_count,'Lớp phụ trách',ClipboardCheck],[data.summary.pending_leave_requests,'Đơn chờ xử lý',CalendarClock],[data.recent_attendance_sessions.length,'Phiên điểm danh gần đây',CheckCircle2]]" class="rounded-2xl border border-slate-200 bg-white p-5"><component :is="item[2]" class="size-5 text-primary-600"/><p class="mt-3 text-3xl font-bold text-ink">{{item[0]}}</p><p class="mt-1 text-sm text-slate-500">{{item[1]}}</p></article></section><section class="rounded-2xl border border-slate-200 bg-white p-5"><h2 class="font-semibold text-ink">Lớp phụ trách</h2><div v-if="data.classes.length" class="mt-4 space-y-3"><RouterLink v-for="item in data.classes" :to="'/lop-hoc'" class="flex items-center gap-4 rounded-xl bg-slate-50 p-4"><span class="grid size-11 place-items-center rounded-xl bg-primary-100 font-semibold text-primary-700">{{item.level?.name?.slice(0,1)}}</span><div class="flex-1"><p class="font-medium text-ink">{{item.name}}</p><p class="mt-1 text-xs text-slate-500">{{item.classroom?.name||'Chưa xếp phòng'}} · {{item.children_count}} thiếu nhi</p></div></RouterLink></div><p v-else class="mt-4 text-sm text-slate-500">Bạn chưa được phân công lớp nào.</p></section></template></div></template>
+<template>
+    <div class="space-y-7">
+        <div v-if="loading" class="animate-pulse space-y-5">
+            <div class="h-40 rounded-2xl bg-primary-100"></div>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div v-for="i in 4" class="h-32 rounded-2xl bg-slate-200"></div>
+            </div>
+        </div>
+        <div
+            v-else-if="error"
+            class="rounded-2xl border border-rose-200 bg-white p-8 text-center"
+        >
+            <p class="text-slate-600">{{ error }}</p>
+            <button
+                @click="load"
+                class="mt-4 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+                Thử lại
+            </button>
+        </div>
+        <template v-else
+            ><section
+                class="overflow-hidden rounded-2xl bg-primary-600 px-6 py-7 text-white sm:px-8"
+            >
+                <p class="text-sm text-blue-100">Không gian giáo lý viên</p>
+                <div
+                    class="mt-2 flex flex-wrap items-end justify-between gap-4"
+                >
+                    <div>
+                        <h2 class="text-2xl font-bold">
+                            Chào buổi sáng, {{ data.teacher.name }}!
+                        </h2>
+                        <p class="mt-2 text-sm text-blue-100">
+                            Theo dõi lớp học và điểm danh thật dễ dàng.
+                        </p>
+                    </div>
+                    <RouterLink
+                        to="/diem-danh"
+                        class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-primary-700"
+                        >Điểm danh nhanh <ArrowUpRight class="size-4"
+                    /></RouterLink>
+                </div>
+            </section>
+            <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <article
+                    v-for="item in [
+                        [data.summary.child_count, 'Thiếu nhi đang học', Users],
+                        [
+                            data.summary.class_count,
+                            'Lớp phụ trách',
+                            ClipboardCheck,
+                        ],
+                        [
+                            data.summary.pending_leave_requests,
+                            'Đơn chờ xử lý',
+                            CalendarClock,
+                        ],
+                        [
+                            data.recent_attendance_sessions.length,
+                            'Phiên điểm danh gần đây',
+                            CheckCircle2,
+                        ],
+                    ]"
+                    class="rounded-2xl border border-slate-200 bg-white p-5"
+                >
+                    <component :is="item[2]" class="size-5 text-primary-600" />
+                    <p class="mt-3 text-3xl font-bold text-ink">
+                        {{ item[0] }}
+                    </p>
+                    <p class="mt-1 text-sm text-slate-500">{{ item[1] }}</p>
+                </article>
+            </section>
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <h2 class="font-semibold text-ink">Lớp phụ trách</h2>
+                <div v-if="data.classes.length" class="mt-4 space-y-3">
+                    <RouterLink
+                        v-for="item in data.classes"
+                        :to="'/lop-hoc'"
+                        class="flex items-center gap-4 rounded-xl bg-slate-50 p-4"
+                        ><span
+                            class="grid size-11 place-items-center rounded-xl bg-primary-100 font-semibold text-primary-700"
+                            >{{ item.level?.name?.slice(0, 1) }}</span
+                        >
+                        <div class="flex-1">
+                            <p class="font-medium text-ink">{{ item.name }}</p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ item.classroom?.name || "Chưa xếp phòng" }} ·
+                                {{ item.children_count }} thiếu nhi
+                            </p>
+                        </div></RouterLink
+                    >
+                </div>
+                <p v-else class="mt-4 text-sm text-slate-500">
+                    Bạn chưa được phân công lớp nào.
+                </p>
+            </section></template
+        >
+    </div>
+</template>
