@@ -593,6 +593,129 @@ footer{background:linear-gradient(100deg,#02386e,#002b59);color:#fff}.footer-gri
   }
 }
 
+/* Desktop: keep the lower content on one consistent, readable grid. */
+@media(min-width:1200px){
+  .audience-grid,
+  .process-card{
+    width:100%;
+  }
+  .process-heading{
+    width:100%;
+    margin-top:24px;
+    margin-bottom:12px;
+    font-size:22px;
+  }
+  .audience-grid{
+    gap:14px;
+  }
+  .audience-grid article{
+    min-height:150px;
+    height:auto;
+    align-items:center;
+    padding:15px 16px;
+  }
+  .audience-grid .avatar{
+    width:105px;
+    height:128px;
+  }
+  .audience-grid h3{
+    font-size:15px;
+    line-height:1.3;
+  }
+  .audience-grid ul{
+    gap:7px;
+    margin-top:10px;
+    font-size:11px;
+    line-height:1.4;
+  }
+  .process-card{
+    min-height:108px;
+    padding:17px 22px;
+  }
+  .process-card article{
+    gap:11px;
+  }
+  .step-number{
+    width:34px;
+    height:34px;
+    font-size:16px;
+  }
+  .step-icon{
+    width:50px;
+    height:50px;
+  }
+  .process-card b{
+    font-size:14px;
+  }
+  .process-card small{
+    margin-top:5px;
+    font-size:11px;
+    line-height:1.45;
+  }
+  .step-arrow{
+    width:22px;
+    height:22px;
+  }
+  .news-section{
+    margin-top:0;
+    padding-top:22px;
+  }
+  .news-grid{
+    width:min(1400px,88%);
+    max-width:none;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px;
+    margin-inline:auto;
+  }
+  .news-box{
+    padding:18px 20px;
+  }
+  .box-heading{
+    padding-bottom:12px;
+  }
+  .box-heading h2{
+    font-size:18px;
+  }
+  .box-heading a{
+    flex:none;
+    font-size:11px;
+    white-space:nowrap;
+  }
+  .news-box article{
+    min-height:92px;
+    align-items:center;
+    gap:15px;
+    padding:14px 0;
+  }
+  .news-box h3{
+    font-size:14px;
+    overflow-wrap:normal;
+  }
+  .news-box p{
+    font-size:11px;
+    line-height:1.5;
+  }
+  .news-box article>div>small{
+    display:block;
+    margin-top:5px;
+    font-size:10px;
+  }
+  .news-box time{
+    width:58px;
+    height:62px;
+  }
+  .news-box time b{
+    font-size:24px;
+  }
+  .news-box time small{
+    font-size:8px;
+  }
+  .notice-icon{
+    width:52px;
+    height:52px;
+  }
+}
+
 /* Tablet: cards need two useful columns instead of four cramped ones. */
 @media(max-width:900px){
   .audience-grid{
