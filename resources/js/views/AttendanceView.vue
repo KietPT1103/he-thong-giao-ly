@@ -16,6 +16,7 @@ import type {
     CatechismClass,
     Child,
 } from "../types/api";
+import { toast } from "vue-sonner";
 type Row = Child & { attendanceStatus: AttendanceStatus };
 const route = useRoute(),
     classes = ref<CatechismClass[]>([]),
@@ -87,10 +88,12 @@ async function createSession() {
         sessionId.value = created.id;
         showCreate.value = false;
         success.value = "Đã mở phiên điểm danh.";
+        toast.success(success.value);
     } catch (e) {
         error.value =
             (e as { response?: { data?: { message?: string } } }).response?.data
                 ?.message || "Không thể tạo phiên điểm danh.";
+        toast.error(error.value);
     } finally {
         saving.value = false;
     }
@@ -109,8 +112,10 @@ async function save() {
             })),
         );
         success.value = "Đã lưu điểm danh vào hệ thống.";
+        toast.success(success.value);
     } catch {
         error.value = "Không thể lưu điểm danh. Vui lòng thử lại.";
+        toast.error(error.value);
     } finally {
         saving.value = false;
     }
@@ -294,11 +299,11 @@ const statuses: Array<{ value: AttendanceStatus; label: string }> = [
                 </article>
             </div>
             <footer
-                class="sticky bottom-0 flex justify-end border-t border-slate-200 bg-white p-4"
+                class="sticky bottom-0 flex justify-stretch border-t border-slate-200 bg-white p-3 sm:justify-end sm:p-4"
             >
                 <button
                     :disabled="!sessionId || saving"
-                    class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                     :title="
                         !sessionId ? 'Hãy chọn hoặc tạo phiên điểm danh' : ''
                     "

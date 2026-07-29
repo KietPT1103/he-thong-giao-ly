@@ -8,12 +8,19 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    phone: string | null;
+    avatar_url: string | null;
+    avatar_path?: string | null;
     status: "active" | "blocked" | "inactive";
     roles: string[];
     permissions: string[];
+    granted_permissions?: string[];
+    denied_permissions?: string[];
+    deleted_at?: string | null;
+    last_login_at?: string | null;
     must_change_password: boolean;
-}
-export interface PaginatedResponse<T> {
+    mfa_enabled?: boolean;
+}export interface PaginatedResponse<T> {
     data: T[];
     current_page: number;
     last_page: number;

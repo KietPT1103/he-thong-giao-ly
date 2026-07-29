@@ -59,7 +59,7 @@ const stats = [
         label: "Thiếu nhi",
         note: "Đang tham gia học",
     },
-    { icon: Church, value: "1", label: "Giáo xứ", note: "An Bình" },
+    { icon: Church, value: "1", label: "Giáo xứ", note: "Cái Răng" },
 ];
 const features: Feature[] = [
     {
@@ -172,7 +172,7 @@ const events = [
         month: "THÁNG 5",
         title: "Thánh Lễ Tĩnh Tâm, Kết Năm",
         time: "08:00 - 10:30",
-        place: "Nhà thờ An Bình",
+        place: "Nhà thờ Cái Răng",
     },
     {
         day: "02",
@@ -252,7 +252,7 @@ function onKey(event: KeyboardEvent) {
                     /></span>
                     <span
                         ><strong>Hành Trang Đức Tin</strong
-                        ><small>Giáo xứ An Bình</small></span
+                        ><small>Giáo xứ Cái Răng</small></span
                     >
                 </a>
                 <nav class="desktop-nav" aria-label="Điều hướng chính">
@@ -288,7 +288,7 @@ function onKey(event: KeyboardEvent) {
                                 alt="" /></span
                         ><span
                             ><strong>Hành Trang Đức Tin</strong
-                            ><small>Giáo xứ An Bình</small></span
+                            ><small>Giáo xứ Cái Răng</small></span
                         ></span
                     ><button @click="toggle(false)"><X /></button>
                 </div>
@@ -316,7 +316,7 @@ function onKey(event: KeyboardEvent) {
                 <img
                     class="hero-church"
                     :src="'/images/02_individual_assets/church-hero.png'"
-                    alt="Nhà thờ Giáo xứ An Bình"
+                    alt="Nhà thờ Giáo xứ Cái Răng"
                 />
                 <img
                     class="hero-children"
@@ -331,7 +331,7 @@ function onKey(event: KeyboardEvent) {
                             tin
                         </h2>
                         <p>
-                            Hệ thống quản lý học giáo lý giúp Giáo xứ An Bình
+                            Hệ thống quản lý học giáo lý giúp Giáo xứ Cái Răng
                             quản lý lớp học, theo dõi tiến độ và kết nối giáo lý
                             viên, phụ huynh và thiếu nhi một cách dễ dàng, hiệu
                             quả và yêu thương.
@@ -518,7 +518,7 @@ function onKey(event: KeyboardEvent) {
                         </h2>
                         <p>
                             Hành Trang Đức Tin - Người bạn đồng hành tin cậy của
-                            Giáo xứ An Bình
+                            Giáo xứ Cái Răng
                         </p>
                         <RouterLink :to="systemDestination" class="cta-button"
                             >{{
@@ -546,7 +546,7 @@ function onKey(event: KeyboardEvent) {
                             alt=""
                         /><span
                             ><b>Hành Trang Đức Tin</b
-                            ><small>Giáo xứ An Bình</small></span
+                            ><small>Giáo xứ Cái Răng</small></span
                         ></span
                     >
                     <p>
@@ -555,7 +555,7 @@ function onKey(event: KeyboardEvent) {
                     </p>
                     <div class="socials">
                         <a
-                            href="mailto:giaoxuanbinh@gmail.com"
+                            href="mailto:giaoxucairang@gmail.com"
                             aria-label="Email"
                             ><Mail /></a
                         ><a href="tel:02812345678" aria-label="Điện thoại"
@@ -566,12 +566,12 @@ function onKey(event: KeyboardEvent) {
                 <div>
                     <h3>Thông tin liên hệ</h3>
                     <p>
-                        <MapPin :size="17" />Giáo xứ An Bình<br />Số 123, Đường
-                        An Bình,<br />P. An Lạc, TP. Hồ Chí Minh
+                        <MapPin :size="17" />Giáo xứ Cái Răng<br />Số 123, Đường
+                        Cái Răng,<br />P. An Lạc, TP. Hồ Chí Minh
                     </p>
                     <p><Phone :size="17" />(028) 1234 5678</p>
-                    <p><Mail :size="17" />giaoxuanbinh@gmail.com</p>
-                    <p><LocateFixed :size="17" />www.giaoxuanbinh.org</p>
+                    <p><Mail :size="17" />giaoxucairang@gmail.com</p>
+                    <p><LocateFixed :size="17" />www.giaoxucairang.org</p>
                 </div>
                 <div>
                     <h3>Liên kết nhanh</h3>
@@ -594,7 +594,7 @@ function onKey(event: KeyboardEvent) {
                 </div>
             </div>
             <p class="copyright">
-                © {{ new Date().getFullYear() }} Giáo xứ An Bình. All rights
+                © {{ new Date().getFullYear() }} Giáo xứ Cái Răng. All rights
                 reserved.
             </p>
         </footer>

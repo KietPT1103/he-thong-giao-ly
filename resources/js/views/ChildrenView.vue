@@ -48,7 +48,7 @@ onMounted(load);
         >
             <div class="border-b border-slate-100 p-4">
                 <label
-                    class="flex max-w-sm items-center gap-2 rounded-xl bg-slate-50 px-3 py-2"
+                    class="flex w-full max-w-sm items-center gap-2 rounded-xl bg-slate-50 px-3 py-2"
                     ><Search class="size-4 text-slate-400" /><input
                         v-model="query"
                         class="w-full bg-transparent text-sm outline-none"
@@ -75,7 +75,7 @@ onMounted(load);
                 <div
                     v-for="student in filtered"
                     :key="`${student.id}-${student.className}`"
-                    class="flex items-center gap-3 border-b border-slate-100 p-4 last:border-0"
+                    class="flex items-start gap-3 border-b border-slate-100 p-3 last:border-0 sm:items-center sm:p-4"
                 >
                     <span
                         class="grid size-10 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700"

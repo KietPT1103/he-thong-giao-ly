@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Gate;
-use App\Models\User;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,10 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
         Gate::define('access-admin', fn (User $user) => $user->hasRole('admin'));
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip());
         });
+        RateLimiter::for('sensitive', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('upload', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('mfa', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get('auth.mfa_user_id', $request->ip())));
     }
 }

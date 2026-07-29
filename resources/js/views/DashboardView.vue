@@ -47,7 +47,7 @@ onMounted(load);
         </div>
         <template v-else
             ><section
-                class="overflow-hidden rounded-2xl bg-primary-600 px-6 py-7 text-white sm:px-8"
+                class="overflow-hidden rounded-2xl bg-primary-600 px-4 py-6 text-white sm:px-8 sm:py-7"
             >
                 <p class="text-sm text-blue-100">Không gian giáo lý viên</p>
                 <div
@@ -63,7 +63,7 @@ onMounted(load);
                     </div>
                     <RouterLink
                         to="/diem-danh"
-                        class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-primary-700"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 sm:w-auto"
                         >Điểm danh nhanh <ArrowUpRight class="size-4"
                     /></RouterLink>
                 </div>
@@ -97,13 +97,13 @@ onMounted(load);
                     <p class="mt-1 text-sm text-slate-500">{{ item[1] }}</p>
                 </article>
             </section>
-            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
                 <h2 class="font-semibold text-ink">Lớp phụ trách</h2>
                 <div v-if="data.classes.length" class="mt-4 space-y-3">
                     <RouterLink
                         v-for="item in data.classes"
                         :to="'/lop-hoc'"
-                        class="flex items-center gap-4 rounded-xl bg-slate-50 p-4"
+                        class="flex items-center gap-3 rounded-xl bg-slate-50 p-3 sm:gap-4 sm:p-4"
                         ><span
                             class="grid size-11 place-items-center rounded-xl bg-primary-100 font-semibold text-primary-700"
                             >{{ item.level?.name?.slice(0, 1) }}</span

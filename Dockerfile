@@ -38,6 +38,7 @@ RUN composer install \
         storage/framework/cache/data \
         storage/framework/sessions \
         storage/framework/views \
+    && php artisan storage:link \
     && chown -R www-data:www-data storage bootstrap/cache
 
 USER www-data

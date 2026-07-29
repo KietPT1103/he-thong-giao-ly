@@ -1,6 +1,14 @@
 import { defineStore } from "pinia";
-import { login, logout, me, getCsrfCookie } from "../api/auth";
+import {
+    confirmPassword,
+    getCsrfCookie,
+    login,
+    mfaChallenge,
+    logout,
+    me,
+} from "../api/auth";
 import type { User } from "../types/api";
+
 export const useAuthStore = defineStore("auth", {
     state: () => ({
         user: null as User | null,
@@ -9,9 +17,9 @@ export const useAuthStore = defineStore("auth", {
         initialized: false,
     }),
     getters: {
-        isAuthenticated: (s) => !!s.user,
-        roles: (s) => s.user?.roles ?? [],
-        permissions: (s) => s.user?.permissions ?? [],
+        isAuthenticated: (state) => !!state.user,
+        roles: (state) => state.user?.roles ?? [],
+        permissions: (state) => state.user?.permissions ?? [],
     },
     actions: {
         async initialize() {
@@ -34,7 +42,21 @@ export const useAuthStore = defineStore("auth", {
             this.isSubmitting = true;
             try {
                 await getCsrfCookie();
-                this.user = (await login(email, password)).data.data;
+                const response = await login(email, password);
+                if (response.status === 202 || response.data.code === "MFA_REQUIRED") {
+                    return "mfa_required" as const;
+                }
+                this.user = response.data.data;
+                this.initialized = true;
+                return "authenticated" as const;
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+        async completeMfa(code: string) {
+            this.isSubmitting = true;
+            try {
+                this.user = (await mfaChallenge(code)).data.data;
                 this.initialized = true;
             } finally {
                 this.isSubmitting = false;
@@ -43,6 +65,14 @@ export const useAuthStore = defineStore("auth", {
         async logout() {
             await logout();
             this.user = null;
+        },
+        expireSession() {
+            this.user = null;
+            this.initialized = true;
+            this.isLoading = false;
+        },
+        async confirmPassword(password: string) {
+            await confirmPassword(password);
         },
         hasRole(role: string) {
             return this.roles.includes(role);

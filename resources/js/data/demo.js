@@ -28,7 +28,7 @@ export const classes = [
     },
 ];
 export const students = [
-    ["Nguyễn An Bình", "Thánh Gioan", "Có mặt"],
+    ["Nguyễn Cái Răng", "Thánh Gioan", "Có mặt"],
     ["Trần Minh Châu", "Thánh Maria", "Có mặt"],
     ["Lê Gia Hân", "Thánh Anna", "Đi trễ"],
     ["Phạm Khánh Linh", "Thánh Têrêsa", "Có mặt"],

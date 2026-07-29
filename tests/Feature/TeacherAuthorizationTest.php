@@ -32,10 +32,8 @@ class TeacherAuthorizationTest extends TestCase
     public function test_teacher_cannot_open_another_teachers_class(): void
     {
         $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
-        $otherClass = CatechismClass::whereDoesntHave(
-            'teachers',
-            fn ($query) => $query->whereKey($teacher->teacherProfile->id)
-        )->firstOrFail();
+        $otherClass = CatechismClass::whereKeyNot($teacher->teacherProfile->classes()->firstOrFail()->id)->firstOrFail();
+        $otherClass->teachers()->detach($teacher->teacherProfile->id);
 
         $this->actingAs($teacher)->getJson("/api/classes/{$otherClass->id}")->assertForbidden();
     }

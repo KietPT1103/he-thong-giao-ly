@@ -17,6 +17,8 @@ const email = ref('');
 const password = ref('');
 const show = ref(false);
 const error = ref('');
+const mfaRequired = ref(false);
+const mfaCode = ref('');
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
@@ -30,7 +32,15 @@ function useDemoAccount() {
 async function submit() {
   error.value = '';
   try {
-    await auth.login(email.value, password.value);
+    if (mfaRequired.value) {
+      await auth.completeMfa(mfaCode.value);
+    } else {
+      const result = await auth.login(email.value, password.value);
+      if (result === 'mfa_required') {
+        mfaRequired.value = true;
+        return;
+      }
+    }
     const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard';
     await router.push(target);
   } catch (e) {
@@ -48,7 +58,7 @@ async function submit() {
 
       <RouterLink class="visual-brand" to="/">
         <span class="brand-logo"><img :src="'/images/02_individual_assets/logo-icon.png'" alt=""></span>
-        <span><b>Hành Trang Đức Tin</b><small>Giáo xứ An Bình</small></span>
+        <span><b>Hành Trang Đức Tin</b><small>Giáo xứ Cái Răng</small></span>
       </RouterLink>
 
       <div class="visual-copy">
@@ -74,7 +84,7 @@ async function submit() {
       <form class="login-card" @submit.prevent="submit">
         <div class="mobile-brand">
           <span class="brand-logo"><img :src="'/images/02_individual_assets/logo-icon.png'" alt=""></span>
-          <span><b>Hành Trang Đức Tin</b><small>Giáo xứ An Bình</small></span>
+          <span><b>Hành Trang Đức Tin</b><small>Giáo xứ Cái Răng</small></span>
         </div>
 
         <div class="form-heading">
@@ -86,6 +96,13 @@ async function submit() {
         </div>
         <p class="form-intro">Nhập thông tin tài khoản để tiếp tục hành trình của bạn.</p>
 
+        <p
+          v-if="route.query.reason === 'expired'"
+          role="status"
+          class="session-message"
+        >
+          Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+        </p>
         <p v-if="error" role="alert" class="error-message">{{ error }}</p>
 
         <label class="field">
@@ -125,8 +142,24 @@ async function submit() {
           </span>
         </label>
 
+        <label v-if="mfaRequired" class="field">
+          <span>Mã xác thực hai lớp</span>
+          <span class="input-wrap">
+            <ShieldCheck :size="18"/>
+            <input
+              v-model="mfaCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              required
+              placeholder="Nhập mã 6 chữ số"
+            >
+          </span>
+        </label>
+
         <button :disabled="auth.isSubmitting" class="submit-button">
-          <span>{{ auth.isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập' }}</span>
+          <span>{{ auth.isSubmitting ? 'Đang xác thực…' : mfaRequired ? 'Xác nhận mã bảo mật' : 'Đăng nhập' }}</span>
           <ArrowRight v-if="!auth.isSubmitting" :size="18"/>
           <span v-else class="spinner"/>
         </button>
@@ -139,7 +172,7 @@ async function submit() {
           <button type="button" @click="useDemoAccount">Điền nhanh</button>
         </div>
 
-        <p class="support-note">Bạn cần hỗ trợ? Liên hệ Ban Giáo lý Giáo xứ An Bình.</p>
+        <p class="support-note">Bạn cần hỗ trợ? Liên hệ Ban Giáo lý Giáo xứ Cái Răng.</p>
       </form>
     </section>
   </main>
@@ -377,6 +410,15 @@ async function submit() {
   color:#637b95;
   font-size:13px;
   line-height:1.55;
+}
+.session-message{
+  margin:-8px 0 18px;
+  border:1px solid #bfdbfe;
+  border-radius:12px;
+  padding:10px 12px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:12px;
 }
 .error-message{
   margin:-8px 0 18px;

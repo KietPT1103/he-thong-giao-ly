@@ -2,47 +2,31 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    use HasRoles {
+        hasPermissionTo as protected hasPermissionToFromRoles;
+    }
+
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'status',
-        'must_change_password',
+        'name', 'email', 'phone', 'avatar_path', 'password', 'status', 'must_change_password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -50,10 +34,48 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'deleted_at' => 'datetime',
+            'mfa_secret' => 'encrypted',
+            'mfa_recovery_codes' => 'encrypted:array',
+            'mfa_confirmed_at' => 'datetime',
         ];
     }
 
-    public function teacherProfile(){ return $this->hasOne(TeacherProfile::class); }
-    public function parentProfile(){ return $this->hasOne(ParentProfile::class); }
-    public function child(){ return $this->hasOne(Child::class); }
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        $resolvedPermission = $this->filterPermission($permission, $guardName);
+
+        if ($this->deniedPermissions()->whereKey($resolvedPermission->getKey())->exists()) {
+            return false;
+        }
+
+        return $this->hasPermissionToFromRoles($resolvedPermission, $guardName);
+    }
+
+    public function deniedPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'denied_permissions')->withTimestamps();
+    }
+
+    public function effectivePermissions()
+    {
+        $denied = $this->deniedPermissions()->pluck('permissions.id');
+
+        return $this->getAllPermissions()->reject(fn (Permission $permission) => $denied->contains($permission->id))->values();
+    }
+
+    public function teacherProfile()
+    {
+        return $this->hasOne(TeacherProfile::class);
+    }
+
+    public function parentProfile()
+    {
+        return $this->hasOne(ParentProfile::class);
+    }
+
+    public function child()
+    {
+        return $this->hasOne(Child::class);
+    }
 }

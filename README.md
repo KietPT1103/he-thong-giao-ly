@@ -1,6 +1,6 @@
 # Hành Trang Đức Tin
 
-MVP quản lý học giáo lý cho Giáo xứ An Bình. Bản này gồm giao diện Vue 3 responsive dành cho giáo lý viên và nền Laravel cho lớp học, thiếu nhi, ghi danh và điểm danh.
+MVP quản lý học giáo lý cho Giáo xứ Cái Răng. Bản này gồm giao diện Vue 3 responsive dành cho giáo lý viên và nền Laravel cho lớp học, thiếu nhi, ghi danh và điểm danh.
 
 ## Chạy dự án
 

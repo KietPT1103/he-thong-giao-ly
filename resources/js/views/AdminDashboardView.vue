@@ -11,6 +11,10 @@ import {
     RefreshCw,
 } from "lucide-vue-next";
 import { getAdminDashboard, type AdminDashboard } from "../api/admin";
+import ACard from "ant-design-vue/es/card";
+import ACol from "ant-design-vue/es/grid/Col";
+import ARow from "ant-design-vue/es/grid/Row";
+import AStatistic from "ant-design-vue/es/statistic";
 
 const data = ref<AdminDashboard | null>(null),
     loading = ref(true),
@@ -84,7 +88,7 @@ onMounted(load);
         </section>
         <template v-else-if="data">
             <section
-                class="overflow-hidden rounded-3xl bg-gradient-to-r from-primary-700 to-primary-500 p-6 text-white sm:p-8"
+                class="overflow-hidden rounded-3xl bg-gradient-to-r from-primary-700 to-primary-500 p-4 text-white sm:p-6 lg:p-8"
             >
                 <p class="text-sm font-medium text-blue-100">
                     Giáo phận Cần Thơ
@@ -102,7 +106,7 @@ onMounted(load);
                         </p>
                     </div>
                     <div
-                        class="rounded-2xl bg-white/15 px-5 py-3 backdrop-blur"
+                        class="w-full rounded-2xl bg-white/15 px-4 py-3 sm:w-auto sm:px-5"
                     >
                         <p class="text-xs text-blue-100">Chuyên cần tuần này</p>
                         <p class="mt-1 text-2xl font-bold">
@@ -116,29 +120,28 @@ onMounted(load);
                 </div>
             </section>
 
-            <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <article
+            <ARow :gutter="[16, 16]">
+                <ACol
                     v-for="item in stats"
                     :key="item.label"
-                    class="rounded-2xl border border-slate-200 bg-white p-5"
+                    :xs="24"
+                    :sm="12"
+                    :xl="6"
                 >
-                    <span
-                        :class="item.tone"
-                        class="grid size-11 place-items-center rounded-xl"
-                        ><component :is="item.icon" class="size-5"
-                    /></span>
-                    <p class="mt-4 text-3xl font-bold text-ink">
-                        {{ item.value.toLocaleString("vi-VN") }}
-                    </p>
-                    <p class="mt-1 text-sm text-slate-500">{{ item.label }}</p>
-                </article>
-            </section>
+                    <ACard :bordered="false" class="admin-card h-full">
+                        <div class="flex items-center gap-3">
+                            <span :class="item.tone" class="grid size-11 shrink-0 place-items-center rounded-xl"><component :is="item.icon" class="size-5" /></span>
+                            <AStatistic :title="item.label" :value="item.value" />
+                        </div>
+                    </ACard>
+                </ACol>
+            </ARow>
 
             <section class="grid gap-5 xl:grid-cols-3">
                 <article
-                    class="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2"
+                    class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 xl:col-span-2"
                 >
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h3 class="font-bold text-ink">
                                 Giáo xứ trong hệ thống

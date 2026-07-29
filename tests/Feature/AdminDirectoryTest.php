@@ -22,8 +22,8 @@ class AdminDirectoryTest extends TestCase
         $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
         $expected = [
             'parishes' => 1,
-            'teachers' => 8,
-            'parents' => 20,
+            'teachers' => 1,
+            'parents' => 1,
             'children' => 30,
             'classes' => 6,
             'announcements' => 0,

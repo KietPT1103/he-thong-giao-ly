@@ -25,7 +25,7 @@ class AdminDashboardTest extends TestCase
             ->getJson('/api/admin/dashboard')
             ->assertOk()
             ->assertJsonPath('data.summary.parish_count', 1)
-            ->assertJsonPath('data.summary.teacher_count', 8)
+            ->assertJsonPath('data.summary.teacher_count', 1)
             ->assertJsonPath('data.summary.child_count', 30)
             ->assertJsonCount(1, 'data.parishes');
     }

@@ -1,270 +1,50 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { Bell, Menu } from "lucide-vue-next";
+import AppSidebar from "./components/AppSidebar.vue";
 import { useAuthStore } from "./stores/authStore";
-import {
-    BookOpen,
-    CalendarDays,
-    CheckSquare,
-    Church,
-    ClipboardList,
-    GraduationCap,
-    Home,
-    Menu,
-    Users,
-    X,
-    LogOut,
-    QrCode,
-    Bell,
-    Gift,
-    Settings,
-    UserRound,
-} from "lucide-vue-next";
-type NavItem = {
-    to: string;
-    label: string;
-    icon: Component;
-    permission?: string;
-};
-const route = useRoute(),
-    router = useRouter(),
-    auth = useAuthStore(),
-    open = ref(false),
-    collapsed = ref(false);
+import { Toaster } from "./components/ui/sonner";
+import "vue-sonner/style.css";
+
+const route = useRoute();
+const auth = useAuthStore();
+const open = ref(false);
 const publicPage = computed(() => Boolean(route.meta.public));
-const role = computed(
-    () =>
-        ["admin", "teacher", "parent", "child"].find((x) =>
-            auth.roles.includes(x),
-        ) || "",
-);
-const roleLabel = computed(
-    () =>
-        ({
-            admin: "Quản trị hệ thống",
-            teacher: "Không gian giáo lý viên",
-            parent: "Không gian phụ huynh",
-            child: "Không gian thiếu nhi",
-        })[role.value] || "Hệ thống giáo lý",
-);
-const nav: Record<string, NavItem[]> = {
-    admin: [
-        { to: "/admin", label: "Tổng quan", icon: Home },
-        { to: "/admin/parishes", label: "Giáo xứ", icon: Church },
-        { to: "/admin/teachers", label: "Giáo lý viên", icon: GraduationCap },
-        { to: "/admin/parents", label: "Phụ huynh", icon: Users },
-        { to: "/admin/children", label: "Thiếu nhi", icon: UserRound },
-        { to: "/admin/classes", label: "Lớp học", icon: BookOpen },
-        { to: "/admin/announcements", label: "Thông báo", icon: Bell },
-    ],
-    teacher: [
-        { to: "/teacher", label: "Tổng quan", icon: Home },
-        {
-            to: "/teacher/classes",
-            label: "Lớp của tôi",
-            icon: GraduationCap,
-            permission: "view-classes",
-        },
-        {
-            to: "/teacher/children",
-            label: "Thiếu nhi",
-            icon: Users,
-            permission: "view-children",
-        },
-        {
-            to: "/teacher/schedule",
-            label: "Lịch dạy",
-            icon: CalendarDays,
-            permission: "view-classes",
-        },
-        {
-            to: "/teacher/attendance",
-            label: "Điểm danh lớp",
-            icon: CheckSquare,
-            permission: "view-attendance",
-        },
-        { to: "/teacher/qr-scanner", label: "Điểm danh QR", icon: QrCode },
-        { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen },
-        {
-            to: "/teacher/submissions",
-            label: "Bài cần chấm",
-            icon: ClipboardList,
-        },
-        { to: "/teacher/announcements", label: "Thông báo lớp", icon: Bell },
-    ],
-    parent: [
-        { to: "/parent", label: "Tổng quan", icon: Home },
-        { to: "/parent/children", label: "Các con của tôi", icon: Users },
-        { to: "/parent/schedule", label: "Lịch học", icon: CalendarDays },
-        {
-            to: "/parent/mass-attendance",
-            label: "Lịch sử tham dự",
-            icon: Church,
-        },
-        { to: "/parent/assignments", label: "Bài tập", icon: BookOpen },
-        { to: "/parent/points", label: "Điểm thưởng", icon: Gift },
-        { to: "/parent/notifications", label: "Thông báo", icon: Bell },
-    ],
-    child: [
-        { to: "/child", label: "Tổng quan", icon: Home },
-        { to: "/child/schedule", label: "Lịch học", icon: CalendarDays },
-        { to: "/child/mass", label: "Thánh lễ", icon: Church },
-        { to: "/child/assignments", label: "Bài tập", icon: BookOpen },
-        { to: "/child/points", label: "Điểm thưởng", icon: Gift },
-        { to: "/child/my-qr", label: "Mã QR", icon: QrCode },
-    ],
-};
-const navigation = computed(
-    () =>
-        nav[role.value]?.filter(
-            (item) => !item.permission || auth.hasPermission(item.permission),
-        ) || [],
-);
-const childBottom = computed(() =>
-    nav.child
-        .filter((x) =>
-            [
-                "/child",
-                "/child/schedule",
-                "/child/assignments",
-                "/child/my-qr",
-            ].includes(x.to),
-        )
-        .concat([{ to: "/child/profile", label: "Cá nhân", icon: UserRound }]),
-);
-async function signOut() {
-    await auth.logout();
-    await router.push("/login");
+const roleLabel = computed(() => ({ admin: "Quản trị hệ thống", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" }[auth.roles[0] ?? ""] ?? "Hệ thống giáo lý"));
+
+function closeNavigation() {
+    open.value = false;
 }
+
+function handleEscape(event: KeyboardEvent) {
+    if (event.key === "Escape") closeNavigation();
+}
+
+watch(() => route.fullPath, closeNavigation);
+watch(open, (isOpen) => {
+    document.body.classList.toggle("navigation-open", isOpen);
+});
+onMounted(() => window.addEventListener("keydown", handleEscape));
+onBeforeUnmount(() => {
+    window.removeEventListener("keydown", handleEscape);
+    document.body.classList.remove("navigation-open");
+});
 </script>
+
 <template>
+    <Toaster position="top-right" rich-colors close-button />
     <RouterView v-if="publicPage" />
-    <div
-        v-else-if="auth.isLoading"
-        class="grid min-h-screen place-items-center text-primary-700"
-    >
-        Đang kiểm tra phiên đăng nhập…
-    </div>
-    <div v-else class="min-h-screen">
-        <button
-            v-if="open"
-            class="fixed inset-0 z-30 bg-slate-950/40 lg:hidden"
-            aria-label="Đóng menu"
-            @click="open = false"
-        />
-        <aside
-            :class="[
-                open ? 'translate-x-0' : '-translate-x-full',
-                collapsed ? 'lg:w-20' : 'lg:w-72',
-            ]"
-            class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-ink px-3 py-5 text-white transition-all lg:translate-x-0"
-        >
-            <div class="mb-7 flex items-center gap-3 px-2">
-                <div
-                    class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-500"
-                >
-                    <BookOpen class="size-5" />
-                </div>
-                <div v-if="!collapsed" class="min-w-0">
-                    <p class="truncate font-semibold">Hành Trang Đức Tin</p>
-                    <p class="truncate text-xs text-blue-200">
-                        Giáo phận Cần Thơ
-                    </p>
-                </div>
-                <button
-                    class="ml-auto lg:hidden"
-                    aria-label="Đóng menu"
-                    @click="open = false"
-                >
-                    <X />
-                </button>
-            </div>
-            <p
-                v-if="!collapsed"
-                class="px-3 pb-3 text-xs font-medium uppercase tracking-wider text-blue-300"
-            >
-                {{ roleLabel }}
-            </p>
-            <nav class="space-y-1 overflow-y-auto">
-                <RouterLink
-                    v-for="item in navigation"
-                    :key="item.to"
-                    :to="item.to"
-                    :title="collapsed ? item.label : undefined"
-                    class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-blue-100 hover:bg-white/10"
-                    active-class="!bg-primary-600 !text-white"
-                    @click="open = false"
-                    ><component :is="item.icon" class="size-5 shrink-0" /><span
-                        v-if="!collapsed"
-                        >{{ item.label }}</span
-                    ></RouterLink
-                >
-            </nav>
-            <button
-                class="mt-auto flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-blue-100 hover:bg-white/10"
-                @click="signOut"
-            >
-                <LogOut class="size-5 shrink-0" /><span v-if="!collapsed"
-                    >Đăng xuất</span
-                ></button
-            ><button
-                class="mt-2 hidden min-h-10 text-xs text-blue-300 lg:block"
-                @click="collapsed = !collapsed"
-            >
-                {{ collapsed ? "Mở rộng" : "Thu gọn" }}
-            </button>
-        </aside>
-        <div
-            :class="collapsed ? 'lg:pl-20' : 'lg:pl-72'"
-            class="transition-all"
-        >
-            <header
-                class="flex min-h-18 items-center border-b border-slate-200 bg-white px-4 sm:px-7"
-            >
-                <button
-                    class="rounded-lg p-2 lg:hidden"
-                    aria-label="Mở menu"
-                    @click="open = true"
-                >
-                    <Menu />
-                </button>
-                <div class="ml-2">
-                    <p class="text-xs text-slate-500">{{ roleLabel }}</p>
-                    <h1 class="font-semibold text-ink">
-                        {{ route.meta.title }}
-                    </h1>
-                </div>
-                <div class="ml-auto flex items-center gap-2">
-                    <button
-                        disabled
-                        class="grid size-11 cursor-not-allowed place-items-center rounded-xl text-slate-400"
-                        title="Thông báo đang được hoàn thiện"
-                    >
-                        <Bell class="size-5" /></button
-                    ><span
-                        class="hidden rounded-xl bg-primary-100 px-3 py-2 text-sm font-medium text-primary-700 sm:block"
-                        >{{ auth.user?.name }}</span
-                    >
-                </div>
+    <div v-else-if="auth.isLoading" class="grid min-h-screen place-items-center text-primary-700">Đang kiểm tra phiên đăng nhập…</div>
+    <div v-else class="min-h-screen bg-surface-soft">
+        <AppSidebar :open="open" @close="closeNavigation" />
+        <div class="min-w-0 transition-[padding] duration-300 lg:pl-76">
+            <header class="app-shell-header sticky top-0 z-20 min-h-16 border-b border-slate-200/80 px-3 backdrop-blur sm:min-h-18 sm:px-6 lg:px-7">
+                <button class="header-menu-button grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 lg:hidden" aria-label="Mở menu điều hướng" aria-controls="app-sidebar" :aria-expanded="open" @click="open = true"><Menu class="size-5" /></button>
+                <div class="header-title min-w-0"><h1 class="truncate text-sm font-semibold text-ink sm:text-base">{{ route.meta.title }}</h1><p class="truncate text-[11px] text-slate-500 sm:text-xs">{{ roleLabel }}</p></div>
+                <button disabled class="header-notification grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400" aria-label="Thông báo đang được hoàn thiện" title="Thông báo đang được hoàn thiện"><Bell class="size-5" /></button>
             </header>
-            <main class="mx-auto max-w-7xl p-4 pb-24 sm:p-7">
-                <RouterView />
-            </main>
+            <main class="app-content mx-auto w-full max-w-7xl px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-7 lg:py-7"><RouterView /></main>
         </div>
-        <nav
-            v-if="role === 'child'"
-            class="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white lg:hidden"
-        >
-            <RouterLink
-                v-for="item in childBottom"
-                :key="item.to"
-                :to="item.to"
-                class="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] text-slate-500"
-                active-class="text-primary-700"
-                ><component :is="item.icon" class="size-5" />{{
-                    item.label
-                }}</RouterLink
-            >
-        </nav>
     </div>
 </template>

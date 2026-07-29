@@ -14,8 +14,6 @@ import ChildrenView from "../views/ChildrenView.vue";
 import ScheduleView from "../views/ScheduleView.vue";
 import AssignmentsView from "../views/AssignmentsView.vue";
 import ModulePendingView from "../views/ModulePendingView.vue";
-import AdminDashboardView from "../views/AdminDashboardView.vue";
-import AdminDirectoryView from "../views/AdminDirectoryView.vue";
 import ForbiddenView from "../views/ForbiddenView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
 
@@ -70,7 +68,8 @@ const routes: RouteRecordRaw[] = [
         meta: { public: true, title: "Sự kiện" },
     },
 
-    protectedRoute("/admin", "Tổng quan", ["admin"], AdminDashboardView),
+    protectedRoute("/admin", "Tổng quan", ["admin"], () => import("../views/AdminDashboardView.vue")),
+    protectedRoute("/admin/accounts", "Quản lý tài khoản", ["admin"], () => import("../views/AdminAccountsView.vue"), "manage-users"),
     ...[
         ["parishes", "Giáo xứ"],
         ["teachers", "Giáo lý viên"],
@@ -80,7 +79,7 @@ const routes: RouteRecordRaw[] = [
         ["announcements", "Thông báo"],
     ].map(([module, title]) => ({
         path: `/admin/${module}`,
-        component: AdminDirectoryView,
+        component: () => import("../views/AdminDirectoryView.vue"),
         meta: { requiresAuth: true, title, roles: ["admin"], module },
     })),
     ...[
@@ -173,6 +172,8 @@ const routes: RouteRecordRaw[] = [
         ["/my-qr", "Mã QR của tôi"],
         ["/profile", "Cá nhân"],
     ].map(([path, title]) => child(path, title)),
+
+    protectedRoute("/account", "Tài khoản của tôi", ["admin", "teacher", "parent", "child"], () => import("../views/AccountView.vue")),
 
     { path: "/dashboard", redirect: () => dashboardFor(useAuthStore().roles) },
     { path: "/lop-hoc", redirect: "/teacher/classes" },

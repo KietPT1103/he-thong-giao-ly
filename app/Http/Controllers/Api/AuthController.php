@@ -1,11 +1,219 @@
-<?php namespace App\Http\Controllers\Api; use App\Enums\UserStatus; use App\Http\Requests\Auth\LoginRequest; use App\Http\Resources\UserResource; use Illuminate\Http\Request; use Illuminate\Support\Facades\Auth; use Illuminate\Support\Facades\Hash; use Illuminate\Support\Facades\Password; class AuthController extends ApiController {
- public function login(LoginRequest $request){$user=\App\Models\User::where('email',$request->string('email'))->first(); if(!$user||!Hash::check($request->string('password'),$user->password)) return response()->json(['success'=>false,'message'=>'Email hoặc mật khẩu không đúng.'],422); if($user->status===UserStatus::Blocked->value)return response()->json(['success'=>false,'message'=>'Tài khoản đã bị khóa.'],403); Auth::login($user,$request->boolean('remember'));$request->session()->regenerate();$user->update(['last_login_at'=>now()]);return $this->success(new UserResource($user),'Đăng nhập thành công');}
- public function logout(Request $request){Auth::guard('web')->logout();$request->session()->invalidate();$request->session()->regenerateToken();return $this->success(null,'Đã đăng xuất');}
- public function me(Request $request){return $this->success(new UserResource($request->user()));}
- public function forgot(Request $request){$request->validate(['email'=>['required','email']]);$status=Password::sendResetLink($request->only('email'));return $status===Password::RESET_LINK_SENT?$this->success(null,__($status)):response()->json(['success'=>false,'message'=>__($status)],422);}
- public function reset(Request $request){$request->validate(['token'=>'required','email'=>'required|email','password'=>'required|confirmed|min:8']);$status=Password::reset($request->only('email','password','password_confirmation','token'),fn($user,$password)=>$user->forceFill(['password'=>$password])->save());return $status===Password::PASSWORD_RESET?$this->success(null,'Đã đặt lại mật khẩu'):response()->json(['success'=>false,'message'=>__($status)],422);}
- public function change(Request $request){$request->validate(['current_password'=>'required','password'=>'required|confirmed|min:8']);if(!Hash::check($request->current_password,$request->user()->password))return response()->json(['success'=>false,'message'=>'Mật khẩu hiện tại không đúng.'],422);$request->user()->update(['password'=>$request->password,'must_change_password'=>false]);return $this->success(null,'Đã đổi mật khẩu');}
- public function sessions(Request $request){return $this->success(\Illuminate\Support\Facades\DB::table('sessions')->where('user_id',$request->user()->id)->orderByDesc('last_activity')->get(['id','ip_address','user_agent','last_activity']));}
- public function destroySession(Request $request,string $session){\Illuminate\Support\Facades\DB::table('sessions')->where('user_id',$request->user()->id)->where('id',$session)->delete();return $this->success(null,'Đã xóa phiên');}
- public function destroyOtherSessions(Request $request){\Illuminate\Support\Facades\DB::table('sessions')->where('user_id',$request->user()->id)->where('id','<>',$request->session()->getId())->delete();return $this->success(null,'Đã xóa các phiên khác');}
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Enums\UserStatus;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use App\Services\AuditLogger;
+use App\Services\TotpService;
+
+class AuthController extends ApiController
+{
+    public function login(LoginRequest $request, AuditLogger $audit)
+    {
+        $user = User::where('email', $request->string('email'))->first();
+
+        if (! $user || ! Hash::check($request->string('password'), $user->password)) {
+            $audit->record($request, 'auth.login_failed', $user, null, ['email' => $request->string('email')->toString()]);
+            return response()->json(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng.'], 422);
+        }
+
+        if ($user->status === UserStatus::Blocked->value) {
+            $audit->record($request, 'auth.login_blocked', $user);
+            return response()->json(['success' => false, 'message' => 'Tài khoản đã bị khóa.'], 403);
+        }
+
+        if ($user->hasRole('admin') && $user->mfa_confirmed_at !== null) {
+            $request->session()->regenerate();
+            $request->session()->put('auth.mfa_user_id', $user->id);
+            $request->session()->put('auth.mfa_started_at', now()->timestamp);
+            $audit->record($request, 'auth.mfa_challenge_started', $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vui lòng nhập mã xác thực hai lớp.',
+                'code' => 'MFA_REQUIRED',
+                'data' => null,
+            ], 202);
+        }
+
+        Auth::login($user, false);
+        $request->session()->regenerate();
+        $request->session()->put('auth.login_at', now()->timestamp);
+        $user->update(['last_login_at' => now()]);
+        $audit->record($request, 'auth.login_succeeded', $user);
+
+        return $this->success(new UserResource($user), 'Đăng nhập thành công');
+    }
+
+    public function mfaChallenge(Request $request, TotpService $totp, AuditLogger $audit)
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:32']]);
+        $startedAt = (int) $request->session()->get('auth.mfa_started_at', 0);
+        if ($startedAt === 0 || now()->timestamp - $startedAt > 300) {
+            $request->session()->forget(['auth.mfa_user_id', 'auth.mfa_started_at']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Phiên xác thực hai lớp đã hết hạn. Vui lòng đăng nhập lại.',
+                'code' => 'MFA_CHALLENGE_EXPIRED',
+            ], 401);
+        }
+        $user = User::find($request->session()->get('auth.mfa_user_id'));
+        $validTotp = $user?->mfa_secret && $totp->verify($user->mfa_secret, $data['code']);
+        $recoveryIndex = $user ? collect($user->mfa_recovery_codes ?? [])->search(
+            fn (string $hash) => Hash::check($data['code'], $hash),
+        ) : false;
+        if (! $user || (! $validTotp && $recoveryIndex === false)) {
+            $audit->record($request, 'auth.mfa_challenge_failed', $user);
+            return response()->json(['success' => false, 'message' => 'Mã xác thực không hợp lệ.', 'code' => 'INVALID_MFA_CODE'], 422);
+        }
+
+        if ($recoveryIndex !== false) {
+            $codes = $user->mfa_recovery_codes;
+            unset($codes[$recoveryIndex]);
+            $user->forceFill(['mfa_recovery_codes' => array_values($codes)])->save();
+            $audit->record($request, 'auth.mfa_recovery_code_used', $user);
+        }
+
+        $request->session()->forget(['auth.mfa_user_id', 'auth.mfa_started_at']);
+        Auth::login($user, false);
+        $request->session()->regenerate();
+        $request->session()->put('auth.login_at', now()->timestamp);
+        $user->update(['last_login_at' => now()]);
+        $audit->record($request, 'auth.login_succeeded', $user);
+
+        return $this->success(new UserResource($user), 'Đăng nhập thành công');
+    }
+
+    public function logout(Request $request, AuditLogger $audit)
+    {
+        $user = $request->user();
+        $audit->record($request, 'auth.logout', $user);
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return $this->success(null, 'Đã đăng xuất');
+    }
+
+    public function me(Request $request)
+    {
+        return $this->success(new UserResource($request->user()));
+    }
+
+    public function confirmPassword(Request $request, AuditLogger $audit)
+    {
+        $request->validate(['password' => ['required', 'string']]);
+
+        if (! Hash::check($request->string('password'), $request->user()->password)) {
+            $audit->record($request, 'auth.password_confirmation_failed', $request->user());
+            return response()->json(['success' => false, 'message' => 'Mật khẩu không đúng.'], 422);
+        }
+
+        $request->session()->put('auth.password_confirmed_at', now()->timestamp);
+
+        return $this->success(null, 'Đã xác nhận mật khẩu');
+    }
+
+    public function forgot(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+        $status = Password::sendResetLink($request->only('email'));
+
+        return $status === Password::RESET_LINK_SENT
+            ? $this->success(null, __($status))
+            : response()->json(['success' => false, 'message' => __($status)], 422);
+    }
+
+    public function reset(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'remember_token' => Str::random(60),
+                ])->save();
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+            },
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? $this->success(null, 'Đã đặt lại mật khẩu')
+            : response()->json(['success' => false, 'message' => __($status)], 422);
+    }
+
+    public function change(Request $request, AuditLogger $audit)
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'confirmed', 'min:8'],
+        ]);
+
+        if (! Hash::check($request->string('current_password'), $request->user()->password)) {
+            return response()->json(['success' => false, 'message' => 'Mật khẩu hiện tại không đúng.'], 422);
+        }
+
+        DB::transaction(function () use ($request): void {
+            $request->user()->forceFill([
+                'password' => $request->string('password'),
+                'remember_token' => Str::random(60),
+                'must_change_password' => false,
+            ])->save();
+
+            DB::table('sessions')
+                ->where('user_id', $request->user()->id)
+                ->where('id', '<>', $request->session()->getId())
+                ->delete();
+        });
+
+        $request->session()->put('auth.password_confirmed_at', now()->timestamp);
+        $audit->record($request, 'auth.password_changed', $request->user());
+
+        return $this->success(null, 'Đã đổi mật khẩu');
+    }
+
+    public function sessions(Request $request)
+    {
+        return $this->success(DB::table('sessions')
+            ->where('user_id', $request->user()->id)
+            ->orderByDesc('last_activity')
+            ->get(['id', 'ip_address', 'user_agent', 'last_activity']));
+    }
+
+    public function destroySession(Request $request, string $session, AuditLogger $audit)
+    {
+        DB::table('sessions')
+            ->where('user_id', $request->user()->id)
+            ->where('id', $session)
+            ->delete();
+        $audit->record($request, 'auth.session_revoked', $request->user());
+
+        return $this->success(null, 'Đã xóa phiên');
+    }
+
+    public function destroyOtherSessions(Request $request, AuditLogger $audit)
+    {
+        DB::table('sessions')
+            ->where('user_id', $request->user()->id)
+            ->where('id', '<>', $request->session()->getId())
+            ->delete();
+        $audit->record($request, 'auth.other_sessions_revoked', $request->user());
+
+        return $this->success(null, 'Đã xóa các phiên khác');
+    }
 }

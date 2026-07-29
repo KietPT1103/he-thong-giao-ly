@@ -1,7 +1,660 @@
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap");
+@import "ant-design-vue/dist/reset.css";
 
-@theme { --color-primary-50:#eff6ff; --color-primary-100:#dbeafe; --color-primary-500:#3b82f6; --color-primary-600:#2563eb; --color-primary-700:#1d4ed8; --color-ink:#172554; --color-surface-soft:#f8fafc; }
-@layer base { body { @apply bg-surface-soft text-slate-700 antialiased; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } }
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.205 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.205 0 0);
+    --border: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.75rem;
+}
+
+@theme {
+    --color-primary-50: #eff6ff;
+    --color-primary-100: #dbeafe;
+    --color-primary-500: #3b82f6;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+    --color-ink: #172554;
+    --color-surface-soft: #f8fafc;
+}
+@layer base {
+    html {
+        min-width: 320px;
+        overflow-x: hidden;
+    }
+    body {
+        @apply bg-surface-soft text-slate-700 antialiased;
+        min-width: 320px;
+        overflow-x: hidden;
+        font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+    }
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        -webkit-tap-highlight-color: transparent;
+    }
+    button,
+    a {
+        touch-action: manipulation;
+    }
+    img,
+    svg {
+        max-width: 100%;
+    }
+    :focus-visible {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+    }
+}
+
+body.navigation-open {
+    overflow: hidden;
+}
+.app-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.app-content > * {
+    min-width: 0;
+}
+.admin-page-stack {
+    display: flex;
+    width: 100%;
+}
+.admin-card {
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.admin-card .ant-card-body {
+    padding: 16px;
+}
+.admin-table-card .ant-card-body {
+    padding: 0;
+}
+.admin-search-card .ant-card-body {
+    padding: 14px 16px;
+}
+.admin-search-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.admin-search-input {
+    width: min(100%, 720px);
+    min-width: 0;
+    flex: 0 1 720px;
+}
+.admin-search-input .ant-input-affix-wrapper,
+.admin-search-input .ant-input-group-addon .ant-btn {
+    min-height: 42px;
+}
+.admin-search-input .ant-input-affix-wrapper {
+    border-radius: 10px 0 0 10px;
+    padding-inline: 14px;
+}
+.admin-search-input .ant-input-group-addon .ant-btn {
+    border-radius: 0 10px 10px 0;
+    padding-inline: 20px;
+    font-weight: 600;
+}
+.admin-refresh-button {
+    display: inline-flex !important;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-color: #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 0 !important;
+    color: #475569;
+    box-shadow: none;
+}
+.admin-refresh-button:hover {
+    border-color: #bfdbfe !important;
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+.admin-refresh-button .ant-btn-icon {
+    display: grid;
+    margin-inline-end: 0 !important;
+    place-items: center;
+}
+.admin-refresh-button svg {
+    width: 18px;
+    height: 18px;
+}
+.directory-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+}
+.directory-toolbar-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+}
+.record-count {
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #eff6ff;
+    padding: 5px 10px;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+.directory-avatar {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    place-items: center;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+}
+.admin-table-card .ant-table-thead > tr > th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+.admin-table-card .ant-table-tbody > tr > td {
+    padding-block: 15px;
+}
+.admin-table-card .ant-table-tbody > tr:hover > td {
+    background: #f8fbff !important;
+}
+.admin-table-card .ant-table-cell-fix-right {
+    background: #fff;
+    box-shadow: -12px 0 20px -20px rgba(15, 23, 42, 0.55);
+}
+.admin-table-card .ant-table-thead .ant-table-cell-fix-right {
+    background: #f8fafc;
+}
+.account-management-page {
+    width: 100%;
+}
+.account-management-card {
+    background: #fff;
+}
+.account-management-card .ant-card-body {
+    padding: 0;
+}
+.account-management-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 20px 18px;
+}
+.account-management-toolbar p {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.6;
+    text-wrap: pretty;
+}
+.account-management-toolbar > div > span {
+    display: block;
+    margin-top: 4px;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+}
+.account-filters {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) 180px 180px auto;
+    gap: 10px;
+    padding: 14px 20px;
+    border-block: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+.account-filters .ant-input-affix-wrapper,
+.account-filters .ant-select-selector,
+.account-filter-submit {
+    min-height: 42px;
+}
+.account-filters .ant-input-affix-wrapper,
+.account-filters .ant-select-selector {
+    border-radius: 10px !important;
+    background: #fff !important;
+}
+.account-filters .ant-input-affix-wrapper:focus-within {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.account-filter-submit,
+.page-primary-action {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+.account-filter-submit {
+    min-width: 104px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.page-primary-action {
+    min-width: 148px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.accounts-table .ant-table-cell-fix-right {
+    width: 116px !important;
+    min-width: 116px !important;
+    max-width: 116px !important;
+}
+.accounts-table .account-row {
+    cursor: pointer;
+}
+.accounts-table .account-row > td {
+    transition:
+        background-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+.accounts-table .account-row:hover > td,
+.accounts-table .account-row:focus-visible > td {
+    background: #f8fbff !important;
+}
+.accounts-table .account-row:focus-visible {
+    outline: none;
+}
+.accounts-table .account-row:focus-visible > td:first-child {
+    box-shadow: inset 3px 0 #2563eb;
+}
+.accounts-table .account-row.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+}
+.table-icon-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.icon-action-button {
+    display: inline-grid !important;
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 10px;
+    padding: 0 !important;
+    color: #2563eb;
+}
+.icon-action-button:not(:disabled):hover {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+.icon-action-button.is-danger {
+    color: #e11d48;
+}
+.icon-action-button.is-danger:not(:disabled):hover {
+    background: #fff1f2 !important;
+    color: #be123c !important;
+}
+.icon-action-button.is-success {
+    color: #059669;
+}
+.icon-action-button.is-success:not(:disabled):hover {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+}
+.icon-action-button svg {
+    width: 17px;
+    height: 17px;
+    transition: transform 0.18s ease;
+}
+.icon-action-button:not(:disabled):hover svg {
+    transform: scale(1.08);
+}
+.account-pagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 20px;
+    border-top: 1px solid #e2e8f0;
+}
+.ant-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+.ant-btn.ant-btn-icon-only {
+    gap: 0;
+}
+.ant-btn > svg {
+    flex: none;
+}
+.ant-btn:not(:disabled) {
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+.ant-btn-primary:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 16px rgba(37, 99, 235, 0.2);
+}
+.ant-btn-default:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
+}
+.ant-btn-dangerous:not(:disabled):hover {
+    box-shadow: 0 7px 16px rgba(225, 29, 72, 0.14);
+}
+.ant-btn:not(:disabled):active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: none;
+}
+.app-shell-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    width: 100%;
+    min-height: 72px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    color: #172554 !important;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+.header-menu-button {
+    grid-column: 1;
+}
+.header-title {
+    grid-column: 2;
+}
+.header-title h1,
+.header-title p {
+    margin: 0;
+    line-height: 1.3;
+}
+.header-notification {
+    grid-column: 3;
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+}
+.ant-table-wrapper {
+    min-width: 0;
+}
+.ant-btn,
+.ant-input,
+.ant-select-selector {
+    font-family: inherit;
+}
+
+.account-editor-modal .ant-modal {
+    top: 0;
+    max-width: calc(100vw - 32px);
+    padding-bottom: 0;
+}
+.account-editor-modal .ant-modal-content {
+    display: flex;
+    max-height: min(720px, calc(100dvh - 48px));
+    overflow: hidden;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 24px 72px rgba(15, 23, 42, 0.18);
+}
+.account-editor-modal--tall .ant-modal-content {
+    height: min(720px, calc(100dvh - 48px));
+}
+.account-editor-modal--compact .ant-modal-content {
+    height: auto;
+}
+.admin-confirm-modal .ant-modal-content {
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 24px 72px rgba(15, 23, 42, 0.18);
+}
+.account-editor-modal .ant-modal-header {
+    margin: 0;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #e2e8f0;
+}
+.account-editor-modal .ant-modal-close {
+    top: 12px;
+    inset-inline-end: 12px;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: 10px;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+.account-editor-modal .ant-modal-close:hover {
+    background: #f1f5f9;
+    color: #172554;
+}
+.account-editor-modal .ant-modal-body {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+.account-editor-tabs {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+.account-editor-tabs > .ant-tabs-nav {
+    z-index: 2;
+    margin: 0;
+    padding-inline: 24px;
+    background: #fff;
+}
+.account-editor-tabs .ant-tabs-tab {
+    min-height: 48px;
+    padding-block: 12px;
+    font-weight: 600;
+}
+.account-editor-tabs .ant-tabs-content-holder {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px 24px 24px;
+}
+.admin-confirm-modal .ant-modal {
+    max-width: calc(100vw - 32px);
+}
+
+@media (pointer: coarse) {
+    .app-content button,
+    .app-content a,
+    .app-content select {
+        min-height: 44px;
+    }
+    .icon-action-button {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 1023px) {
+    .account-filters {
+        grid-template-columns: minmax(220px, 1fr) 170px 170px;
+    }
+    .account-filter-submit {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}
+
+@media (max-width: 639px) {
+    .admin-search-card .ant-card-body {
+        padding: 12px;
+    }
+    .admin-search-toolbar {
+        align-items: stretch;
+    }
+    .admin-search-input {
+        width: auto;
+        flex: 1 1 auto;
+    }
+    .admin-search-input .ant-input-group-addon .ant-btn {
+        padding-inline: 14px;
+    }
+    .directory-toolbar {
+        align-items: stretch;
+        padding: 12px;
+    }
+    .directory-toolbar-main {
+        align-items: stretch;
+    }
+    .record-count {
+        display: none;
+    }
+    .admin-page-header .page-primary-action,
+    .account-filter-submit {
+        width: 100%;
+    }
+    .account-management-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 16px;
+    }
+    .account-management-toolbar .page-primary-action {
+        width: 100%;
+    }
+    .account-filters {
+        grid-template-columns: 1fr;
+        padding: 12px 16px;
+    }
+    .account-filter-submit {
+        grid-column: auto;
+    }
+    .account-pagination {
+        justify-content: center;
+        padding-inline: 12px;
+    }
+    .account-editor-modal .ant-modal {
+        top: 0;
+        max-width: calc(100vw - 16px);
+        margin: 0 auto;
+    }
+    .account-editor-modal--tall .ant-modal-content {
+        height: calc(100dvh - 24px);
+    }
+    .account-editor-modal .ant-modal-content {
+        max-height: calc(100dvh - 24px);
+        border-radius: 14px;
+    }
+    .account-editor-modal .ant-modal-header {
+        padding: 16px 16px 12px;
+    }
+    .account-editor-modal .ant-modal-close {
+        top: 12px;
+        inset-inline-end: 10px;
+    }
+    .account-editor-modal .ant-modal-title .ant-tag {
+        display: none;
+    }
+    .account-editor-tabs > .ant-tabs-nav {
+        padding-inline: 16px;
+    }
+    .account-editor-tabs .ant-tabs-content-holder {
+        padding: 18px 16px 20px;
+    }
+    .app-content .rounded-3xl {
+        border-radius: 1rem;
+    }
+    .app-content .rounded-2xl {
+        border-radius: 0.875rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .accounts-table .ant-table-content table {
+        width: 100% !important;
+        min-width: 100% !important;
+        table-layout: fixed !important;
+    }
+    .accounts-table col:first-child {
+        width: auto !important;
+    }
+    .accounts-table col:last-child {
+        width: 104px !important;
+    }
+    .accounts-table .ant-table-cell-fix-right {
+        width: 104px !important;
+        min-width: 104px !important;
+        max-width: 104px !important;
+    }
+    .accounts-table th.ant-table-cell-fix-right {
+        padding-inline: 6px !important;
+        white-space: nowrap;
+    }
+    .accounts-table .ant-table-tbody > tr > td {
+        padding-inline: 12px;
+    }
+    .accounts-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+        padding-inline: 6px;
+    }
+}
+
+@media (min-width: 1536px) {
+    .app-content {
+        max-width: 1440px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .app-shell-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .header-title {
+        grid-column: 1;
+    }
+    .header-notification {
+        grid-column: 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ant-btn:not(:disabled),
+    .icon-action-button svg,
+    .accounts-table .account-row > td {
+        transition: none;
+    }
+    .ant-btn:not(:disabled):hover,
+    .ant-btn:not(:disabled):active,
+    .icon-action-button:hover svg {
+        transform: none;
+    }
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -9,6 +662,8 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
 }

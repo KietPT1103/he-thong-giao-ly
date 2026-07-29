@@ -40,7 +40,7 @@ onMounted(load);
         >
             <div class="border-b border-slate-100 p-4">
                 <label
-                    class="flex max-w-sm items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-slate-400"
+                    class="flex w-full max-w-sm items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-slate-400"
                     ><Search class="size-4" /><input
                         v-model="query"
                         aria-label="Tìm lớp"
@@ -74,7 +74,7 @@ onMounted(load);
                 <article
                     v-for="item in filtered"
                     :key="item.id"
-                    class="flex flex-wrap items-center gap-4 p-5"
+                    class="flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5"
                 >
                     <span
                         class="grid size-12 place-items-center rounded-xl bg-primary-100 font-bold text-primary-700"
@@ -93,7 +93,7 @@ onMounted(load);
                         }}
                         thiếu nhi
                     </p>
-                    <div class="flex gap-3 text-sm">
+                    <div class="flex flex-wrap gap-3 text-sm">
                         <RouterLink
                             :to="`/teacher/classes/${item.id}`"
                             class="font-medium text-primary-600"
