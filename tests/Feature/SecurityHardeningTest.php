@@ -52,6 +52,16 @@ class SecurityHardeningTest extends TestCase
             ->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
 
+    public function test_production_accepts_https_forwarded_by_the_render_proxy(): void
+    {
+        config(['app.env' => 'production']);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2'])
+            ->withHeader('X-Forwarded-Proto', 'https')
+            ->get('http://localhost/login')
+            ->assertOk();
+    }
+
     public function test_successful_and_failed_logins_are_audited_without_passwords(): void
     {
         $this->postJson('/api/auth/login', [
