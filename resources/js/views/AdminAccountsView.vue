@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, shallowRef } from "vue";
+import { useRouter } from "vue-router";
 import AAlert from "ant-design-vue/es/alert";
 import AButton from "ant-design-vue/es/button";
 import ACard from "ant-design-vue/es/card";
@@ -16,12 +17,13 @@ import ATag from "ant-design-vue/es/tag";
 import ATabs, { TabPane as ATabPane } from "ant-design-vue/es/tabs";
 import ATooltip from "ant-design-vue/es/tooltip";
 import type { ColumnsType } from "ant-design-vue/es/table/interface";
-import { KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck, UserRound } from "lucide-vue-next";
+import { GraduationCap, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck, UserRound } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { createAccount, getAccountOptions, listAccounts, resetAccountPassword, updateAccount, updateAccountAccess, updateAccountStatus, type AccountMeta, type AccountOptions } from "../api/accounts";
 import AdminActionConfirmModal from "../components/AdminActionConfirmModal.vue";
 import { useAuthStore } from "../stores/authStore";
 import type { User } from "../types/api";
+import { vietnamesePhoneRule } from "../utils/phoneValidation";
 
 interface SensitiveAction {
     title: string;
@@ -35,6 +37,7 @@ interface SensitiveAction {
 }
 
 const auth = useAuthStore();
+const router = useRouter();
 const accounts = ref<User[]>([]), selected = ref<User | null>(null), options = ref<AccountOptions>({ roles: [], permissions: [] });
 const meta = ref<AccountMeta>({ current_page: 1, last_page: 1, per_page: 15, total: 0 });
 const loading = ref(true), saving = ref(false), listError = ref(""), editorError = ref("");
@@ -43,11 +46,12 @@ const createOpen = ref(false), activeTab = ref("info"), resetPassword = ref(""),
 const confirmedUntil = ref(0), confirmOpen = ref(false), confirmNeedsPassword = ref(false), confirmError = ref("");
 const discardOpen = ref(false), editSnapshot = ref("");
 const pendingAction = shallowRef<SensitiveAction | null>(null);
-const createForm = reactive({ name: "", email: "", phone: "", password: "", role: "teacher" });
+const createForm = reactive({ name: "", email: "", phone: "", password: "", role: "" });
 const editForm = reactive({ name: "", email: "", phone: "", role: "", granted: [] as string[], denied: [] as string[] });
 const infoRules: Record<string, RuleObject[]> = {
     name: [{ required: true, message: "Hãy nhập họ và tên." }],
     email: [{ required: true, message: "Hãy nhập email." }, { type: "email", message: "Email không hợp lệ." }],
+    phone: [vietnamesePhoneRule()],
 };
 const createRules: Record<string, RuleObject[]> = {
     ...infoRules,
@@ -100,6 +104,10 @@ const displayRole = (role: string) => roleLabels[role] ?? role;
 const displayPermission = (permission: string) => permissionLabels[permission] ?? permission;
 const roleDefaults = computed(() => options.value.roles.find((item) => item.name === editForm.role)?.permissions ?? []);
 const roleOptions = computed(() => options.value.roles.map((role) => ({ label: displayRole(role.name), value: role.name })));
+const accountCreationRoleOptions = computed(() => roleOptions.value.filter((role) => role.value !== "teacher"));
+const accountEditorRoleOptions = computed(() => selected.value?.roles.includes("teacher")
+    ? roleOptions.value
+    : accountCreationRoleOptions.value);
 const columns: ColumnsType<User> = [
     { title: "Tài khoản", key: "account", width: 300 },
     { title: "Vai trò", key: "roles", width: 170, responsive: ["md"] },
@@ -297,8 +305,13 @@ function requestCreate() {
         confirmText: "Tạo tài khoản",
         success: "Đã tạo tài khoản.",
         run: async () => (await createAccount({ ...createForm })).data.data,
-        after: () => { createOpen.value = false; Object.assign(createForm, { name: "", email: "", phone: "", password: "", role: "teacher" }); },
+        after: () => { createOpen.value = false; Object.assign(createForm, { name: "", email: "", phone: "", password: "", role: "" }); },
     });
+}
+
+function openTeacherCreation() {
+    createOpen.value = false;
+    void router.push({ path: "/admin/teachers", query: { create: "1" } });
 }
 
 onMounted(async () => {
@@ -321,7 +334,10 @@ onMounted(async () => {
                     <p>Vai trò mặc định, quyền tùy chỉnh và trạng thái truy cập toàn hệ thống.</p>
                     <span>{{ meta.total.toLocaleString("vi-VN") }} tài khoản</span>
                 </div>
-                <AButton type="primary" size="large" class="page-primary-action" @click="createOpen = true"><template #icon><Plus class="size-4" /></template>Tạo tài khoản</AButton>
+                <div class="flex flex-wrap justify-end gap-2.5">
+                    <AButton size="large" @click="openTeacherCreation"><template #icon><GraduationCap class="size-4" /></template>Tạo giáo lý viên</AButton>
+                    <AButton type="primary" size="large" class="page-primary-action" @click="createOpen = true"><template #icon><Plus class="size-4" /></template>Tạo tài khoản</AButton>
+                </div>
             </div>
             <div class="account-filters">
                 <AInput v-model:value="search" allow-clear size="large" placeholder="Tìm theo tên hoặc email" @press-enter="load(1)"><template #prefix><Search class="size-4 text-slate-400" /></template></AInput>
@@ -386,7 +402,7 @@ onMounted(async () => {
                         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
                             <AFormItem label="Họ và tên" name="name" required><AInput v-model:value="editForm.name" size="large" class="!rounded-[10px]" /></AFormItem>
                             <AFormItem label="Email" name="email" required><AInput v-model:value="editForm.email" size="large" type="email" class="!rounded-[10px]" /></AFormItem>
-                            <AFormItem class="md:col-span-2" label="Số điện thoại" name="phone"><AInput v-model:value="editForm.phone" size="large" class="!rounded-[10px]" /></AFormItem>
+                            <AFormItem class="md:col-span-2" label="Số điện thoại" name="phone"><AInput v-model:value="editForm.phone" size="large" inputmode="tel" autocomplete="tel" class="!rounded-[10px]" /></AFormItem>
                         </div>
                         <div class="flex justify-end pt-1">
                             <AButton type="primary" size="large" html-type="submit" :loading="saving" class="w-full rounded-[10px] font-semibold sm:w-auto sm:min-w-44"><template #icon><Save class="size-4" /></template>Lưu thông tin</AButton>
@@ -399,7 +415,7 @@ onMounted(async () => {
                             <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600"><ShieldCheck aria-hidden="true" class="size-5 stroke-[1.75]" /></span>
                             <div class="min-w-0"><h3 class="m-0 text-sm font-bold leading-6 text-blue-950">Vai trò và quyền truy cập</h3><p class="mt-0.5 mb-0 text-pretty text-xs leading-5 text-slate-500">Vai trò cung cấp quyền mặc định; quyền tùy chỉnh sẽ ghi đè khi cần.</p></div>
                         </div>
-                        <label class="mt-2 block"><span class="mb-2 block text-xs font-semibold text-slate-700">Vai trò</span><ASelect v-model:value="editForm.role" size="large" class="w-full [&_.ant-select-selector]:!rounded-[10px]" :options="roleOptions" /></label>
+                        <label class="mt-2 block"><span class="mb-2 block text-xs font-semibold text-slate-700">Vai trò</span><ASelect v-model:value="editForm.role" size="large" class="w-full [&_.ant-select-selector]:!rounded-[10px]" :options="accountEditorRoleOptions" /></label>
                         <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
                             <div v-for="permission in options.permissions" :key="permission" class="flex min-h-14 items-center justify-between gap-4 border-t border-slate-200 px-4 py-2.5 first:border-t-0 max-sm:flex-col max-sm:items-stretch max-sm:gap-2.5 max-sm:px-3">
                                 <div class="flex min-w-0 flex-wrap items-center gap-2"><span class="truncate text-xs font-semibold text-slate-700">{{ displayPermission(permission) }}</span><ATag v-if="roleDefaults.includes(permission)" class="!m-0" color="blue">Theo vai trò</ATag></div>
@@ -434,7 +450,7 @@ onMounted(async () => {
     </AModal>
 
     <AModal v-model:open="createOpen" title="Tạo tài khoản" :confirm-loading="saving" ok-text="Tạo tài khoản" cancel-text="Hủy" @ok="requestCreate">
-        <AForm :model="createForm" :rules="createRules" layout="vertical" class="mt-5"><AFormItem label="Họ và tên" name="name" required><AInput v-model:value="createForm.name" size="large" /></AFormItem><AFormItem label="Email" name="email" required><AInput v-model:value="createForm.email" size="large" type="email" /></AFormItem><AFormItem label="Số điện thoại" name="phone"><AInput v-model:value="createForm.phone" size="large" /></AFormItem><AFormItem label="Mật khẩu" name="password" required><AInputPassword v-model:value="createForm.password" size="large" /></AFormItem><AFormItem label="Vai trò" name="role"><ASelect v-model:value="createForm.role" size="large" :options="roleOptions" /></AFormItem></AForm>
+        <AForm :model="createForm" :rules="createRules" layout="vertical" class="mt-5"><AFormItem label="Họ và tên" name="name" required><AInput v-model:value="createForm.name" size="large" /></AFormItem><AFormItem label="Email" name="email" required><AInput v-model:value="createForm.email" size="large" type="email" /></AFormItem><AFormItem label="Số điện thoại" name="phone"><AInput v-model:value="createForm.phone" size="large" inputmode="tel" autocomplete="tel" /></AFormItem><AFormItem label="Mật khẩu" name="password" required><AInputPassword v-model:value="createForm.password" size="large" /></AFormItem><AFormItem label="Vai trò" name="role" required><ASelect v-model:value="createForm.role" size="large" placeholder="Chọn vai trò" :options="accountCreationRoleOptions" /></AFormItem></AForm>
     </AModal>
 
     <AdminActionConfirmModal :open="confirmOpen" :title="pendingAction?.title ?? ''" :description="pendingAction?.description ?? ''" :confirm-text="pendingAction?.confirmText" :target-name="pendingAction?.target?.name" :target-email="pendingAction?.target?.email" :require-password="confirmNeedsPassword" :danger="pendingAction?.danger" :loading="saving" :error-message="confirmError" @close="closeSensitiveConfirm" @confirm="executeSensitiveAction" />

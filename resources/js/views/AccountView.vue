@@ -13,12 +13,14 @@ import QrcodeVue from "qrcode.vue";
 import { toast } from "vue-sonner";
 import { confirmMfa, disableMfa, getMfaStatus, getProfile, regenerateMfaRecoveryCodes, setupMfa, updateProfile, uploadAvatar } from "../api/accounts";
 import { useAuthStore } from "../stores/authStore";
+import { vietnamesePhoneRule } from "../utils/phoneValidation";
 
 const auth = useAuthStore();
 const form = reactive({ name: "", email: "", phone: "" });
 const loading = ref(true), saving = ref(false), avatarUploading = ref(false), error = ref("");
 const mfaEnabled = ref(false), mfaPassword = ref(""), mfaCode = ref(""), mfaUri = ref(""), mfaSecret = ref(""), recoveryCodes = ref<string[]>([]);
 const roleLabels: Record<string, string> = { admin: "Quản trị viên", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" };
+const profileRules = { phone: [vietnamesePhoneRule()] };
 const displayRole = (role: string) => roleLabels[role] ?? role;
 const apiMessage = (e: unknown, fallback: string) => (e as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback;
 
@@ -80,11 +82,11 @@ onMounted(load);
                         <span class="section-icon"><ShieldCheck class="size-5" /></span>
                         <div><h3>Thông tin cá nhân</h3><p>Vai trò và quyền chỉ quản trị viên được thay đổi.</p></div>
                     </div>
-                    <AForm layout="vertical" class="mt-5" @finish="save">
+                    <AForm :model="form" :rules="profileRules" layout="vertical" class="mt-5" @finish="save">
                         <div class="account-form-grid">
                             <AFormItem label="Họ và tên" required><AInput v-model:value="form.name" size="large" :maxlength="255"><template #prefix><UserRound class="account-input-icon" /></template></AInput></AFormItem>
                             <AFormItem label="Email" required><AInput v-model:value="form.email" size="large" type="email"><template #prefix><Mail class="account-input-icon" /></template></AInput></AFormItem>
-                            <AFormItem class="account-phone-field" label="Số điện thoại"><AInput v-model:value="form.phone" size="large" :maxlength="20" placeholder="Chưa cập nhật"><template #prefix><Phone class="account-input-icon" /></template></AInput></AFormItem>
+                            <AFormItem class="account-phone-field" label="Số điện thoại" name="phone"><AInput v-model:value="form.phone" size="large" :maxlength="20" inputmode="tel" autocomplete="tel" placeholder="0901 234 567"><template #prefix><Phone class="account-input-icon" /></template></AInput></AFormItem>
                         </div>
                         <div class="account-form-actions"><AButton type="primary" size="large" html-type="submit" :loading="saving"><template #icon><Save class="size-4" /></template>Lưu thay đổi</AButton></div>
                     </AForm>

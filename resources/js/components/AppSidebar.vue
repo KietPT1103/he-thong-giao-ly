@@ -70,7 +70,7 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
 
 <template>
     <button v-if="open" class="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-[2px] lg:hidden" aria-label="Đóng menu điều hướng" @click="emit('close')" />
-    <aside id="app-sidebar" :class="open ? 'translate-x-0' : '-translate-x-full'" class="sidebar fixed inset-y-0 left-0 z-40 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white transition-transform duration-300 sm:px-4 lg:w-76 lg:translate-x-0 lg:py-5">
+    <aside id="app-sidebar" :class="open ? 'translate-x-0' : '-translate-x-full'" class="sidebar fixed inset-y-0 left-0 z-40 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white transition-transform duration-300 sm:px-4 lg:w-70 lg:translate-x-0 lg:py-5">
         <div class="sidebar-brand flex min-h-13 items-center gap-3 px-1">
             <div class="sidebar-brand-mark grid size-11 shrink-0 place-items-center rounded-xl"><BookOpen class="size-5" /></div>
             <div class="sidebar-brand-copy min-w-0 flex-1"><p class="truncate text-sm font-bold">Hành Trang Đức Tin</p><p class="truncate text-xs">Giáo phận Cần Thơ</p></div>
@@ -108,8 +108,8 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
 .sidebar-brand-copy p{margin:0;line-height:1.2}
 .sidebar-brand-copy p:first-child{color:#faf9f5;letter-spacing:-.015em}
 .sidebar-brand-copy p:last-child{color:#aebed8}
-.sidebar-nav{scrollbar-color:rgba(250,249,245,.18) transparent;scrollbar-width:thin}
-.sidebar-link{border:1px solid transparent;border-radius:.625rem;color:#cbd8ed;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
+.sidebar-nav{overflow-x:hidden;overscroll-behavior:contain;scrollbar-color:rgba(250,249,245,.18) transparent;scrollbar-width:thin}
+.sidebar-link{max-width:100%;border:1px solid transparent;border-radius:.625rem;color:#cbd8ed;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
 .sidebar-link:hover{border-color:rgba(250,249,245,.08);background:rgba(250,249,245,.065);color:#faf9f5;transform:translateX(2px)}
 .sidebar-link :deep(svg){color:#9fb4d4;transition:color .18s ease,transform .18s ease}
 .sidebar-link:hover :deep(svg){color:#faf9f5;transform:scale(1.04)}

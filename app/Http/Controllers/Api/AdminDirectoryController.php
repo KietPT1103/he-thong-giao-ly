@@ -8,54 +8,13 @@ use App\Models\{
     Announcement,
     CatechismClass,
     Child,
-    ParentProfile,
-    Parish,
-    TeacherProfile
+    ParentProfile
 };
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class AdminDirectoryController extends ApiController
 {
-    public function parishes(AdminIndexRequest $request)
-    {
-        $query = Parish::query()
-            ->withCount(['children', 'academicYears'])
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->where(fn (Builder $inner) => $inner
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")));
-
-        return $this->page($query->orderBy('name')->paginate($request->integer('per_page', 15)), fn (Parish $parish) => [
-            'id' => $parish->id,
-            'name' => $parish->name,
-            'code' => $parish->code,
-            'secondary' => "{$parish->children_count} thiếu nhi",
-            'details' => ["{$parish->academic_years_count} niên khóa"],
-            'status' => 'Đang hoạt động',
-        ]);
-    }
-
-    public function teachers(AdminIndexRequest $request)
-    {
-        $query = TeacherProfile::query()
-            ->with(['user:id,name,email,status', 'parish:id,name'])
-            ->withCount('classes')
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->whereHas('user', fn (Builder $user) => $user
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")));
-
-        return $this->page($query->latest()->paginate($request->integer('per_page', 15)), fn (TeacherProfile $teacher) => [
-            'id' => $teacher->id,
-            'name' => $teacher->user->name,
-            'code' => $teacher->code ?: 'Chưa cấp mã',
-            'secondary' => $teacher->user->email,
-            'details' => [$teacher->parish->name, "{$teacher->classes_count} lớp phụ trách"],
-            'status' => $teacher->user->status === 'active' ? 'Đang hoạt động' : 'Đã khóa',
-        ]);
-    }
-
     public function parents(AdminIndexRequest $request)
     {
         $query = ParentProfile::query()

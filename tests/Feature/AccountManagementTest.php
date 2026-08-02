@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Parish;
+use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,12 +116,52 @@ class AccountManagementTest extends TestCase
         $targetId = $created->json('data.id');
         $this->withSession(['auth.password_confirmed_at' => now()->timestamp])
             ->putJson("/api/admin/accounts/{$targetId}/access", [
-                'role' => 'teacher',
+                'role' => 'parent',
                 'granted_permissions' => ['view-attendance'],
                 'denied_permissions' => ['view-classes'],
             ])->assertOk()
-            ->assertJsonPath('data.roles.0', 'teacher')
+            ->assertJsonPath('data.roles.0', 'parent')
             ->assertJsonMissing(['permissions' => 'view-classes']);
+    }
+
+    public function test_teacher_accounts_must_be_created_through_teacher_management(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $teacherProfileCount = TeacherProfile::count();
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+            ->postJson('/api/admin/accounts', [
+                'name' => 'Giáo lý viên sai luồng',
+                'email' => 'wrong-teacher-flow@example.test',
+                'password' => 'secure-password',
+                'role' => 'teacher',
+                'parish_id' => Parish::firstOrFail()->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'TEACHER_CREATION_REQUIRES_PROFILE');
+
+        $this->assertDatabaseMissing('users', ['email' => 'wrong-teacher-flow@example.test']);
+        $this->assertSame($teacherProfileCount, TeacherProfile::count());
+    }
+
+    public function test_account_without_teacher_profile_cannot_be_assigned_teacher_role(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $parent = User::where('email', 'parent@giaoly.test')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+            ->putJson("/api/admin/accounts/{$parent->id}/access", [
+                'role' => 'teacher',
+                'granted_permissions' => [],
+                'denied_permissions' => [],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'TEACHER_CREATION_REQUIRES_PROFILE');
+
+        $this->assertTrue($parent->fresh()->hasRole('parent'));
+        $this->assertFalse($parent->fresh()->hasRole('teacher'));
     }
 
     public function test_only_admin_cannot_lock_archive_or_remove_their_own_admin_role(): void
@@ -167,6 +209,41 @@ class AccountManagementTest extends TestCase
             'id' => $teacher->id,
             'status' => 'blocked',
         ]);
+    }
+
+    public function test_account_phone_fields_reject_invalid_vietnamese_numbers(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $parent = User::where('email', 'parent@giaoly.test')->firstOrFail();
+
+        $this->actingAs($parent)
+            ->patchJson('/api/account', [
+                'name' => $parent->name,
+                'email' => $parent->email,
+                'phone' => '0123456789',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('phone');
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+            ->postJson('/api/admin/accounts', [
+                'name' => 'Phụ huynh sai số điện thoại',
+                'email' => 'invalid-phone@example.test',
+                'phone' => '0123456789',
+                'password' => 'secure-password',
+                'role' => 'parent',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('phone');
+
+        $this->patchJson("/api/admin/accounts/{$parent->id}", [
+            'name' => $parent->name,
+            'email' => $parent->email,
+            'phone' => '1234567890',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('phone');
     }
 
     public function test_admin_soft_deletes_and_restores_an_account(): void

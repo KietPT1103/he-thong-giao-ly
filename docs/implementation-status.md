@@ -160,3 +160,73 @@ Thực hiện Phase 2 theo lát dọc hoàn chỉnh: thêm `dioceses`, mở rộ
 resource admin dashboard, CRUD parish/teacher/parent/child/class với Form
 Request, Resource, Policy, filter/sort/pagination, activity log, UI states và
 feature test trước khi chuyển sang QR/Mass.
+
+## 17. Cập nhật 02/08/2026: quản lý giáo xứ
+
+- Đã bổ sung API riêng cho danh sách, chi tiết, tạo, sửa và xóa giáo xứ.
+- Đã bổ sung luồng phân nhiều giáo lý viên vào giáo xứ trong một giao dịch và
+  ghi activity log cho từng giáo lý viên được chuyển.
+- Chỉ cho phép xóa giáo xứ rỗng; API trả số lượng từng loại dữ liệu đang chặn
+  xóa và không cascade dữ liệu liên quan.
+- Đã bổ sung trang quản trị giáo xứ, form tạo/sửa, modal phân giáo lý viên,
+  xác nhận xóa và trạng thái loading/empty/error.
+- Sidebar đã ẩn overflow ngang và giới hạn chiều rộng link để hover không tạo
+  thanh cuộn ngang.
+- Kiểm thử runtime đã xác nhận luồng tạo/xóa giáo xứ rỗng, chặn xóa giáo xứ có
+  dữ liệu và trạng thái giáo lý viên hiện tại trong modal phân công.
+- Regression suite đạt 50 tests/226 assertions; `vue-tsc`, production build,
+  route contract và `git diff --check` đều đạt.
+
+## 18. Cập nhật 02/08/2026: quản lý giáo lý viên
+
+- Đã bổ sung sáu API riêng cho danh sách, chi tiết, tạo, sửa, lưu trữ và khôi phục
+  giáo lý viên; tất cả endpoint yêu cầu quyền `manage-users`.
+- Danh sách hỗ trợ tìm theo tên/email/mã, lọc giáo xứ và trạng thái đang hoạt động,
+  đã khóa hoặc đã lưu trữ; chi tiết hiển thị các lớp và vai trò đang phụ trách.
+- Tạo mới đồng bộ tài khoản, vai trò giáo lý viên, hồ sơ, giáo xứ và số điện thoại
+  trong một giao dịch; cập nhật không làm thay đổi mật khẩu, vai trò hoặc lớp đã phân công.
+- Chỉ cho phép lưu trữ giáo lý viên không còn lớp. Khi bị chặn, giao diện liệt kê rõ
+  tên và mã từng lớp cần chuyển giao; hồ sơ đã lưu trữ có thể được lọc và khôi phục.
+- Đã bổ sung trang quản trị chuyên biệt, form tạo/sửa có validation và cảnh báo khi
+  đổi giáo xứ của người đang phụ trách lớp, drawer chi tiết và xác nhận bỏ thay đổi.
+- Đã chốt một luồng tạo duy nhất: trang quản lý tài khoản không còn cho chọn vai trò
+  giáo lý viên; nút tạo giáo lý viên chuyển sang trang chuyên biệt và tự mở form.
+  API tạo tài khoản và API phân quyền cũng từ chối role `teacher` bằng mã lỗi có
+  cấu trúc nếu tài khoản chưa có hồ sơ giáo lý viên.
+- QA runtime đã xác nhận tạo, sửa và đồng bộ số điện thoại, chặn lưu trữ khi còn lớp,
+  lưu trữ hồ sơ rỗng, lọc hồ sơ lưu trữ và khôi phục; không có lỗi console hoặc tràn
+  ngang ở viewport desktop 1280×720.
+- Regression suite đạt 62 tests/311 assertions; `vue-tsc`, production build, sáu route
+  API giáo lý viên, Impeccable detector và `git diff --check` đều đạt.
+
+## 19. Cập nhật 02/08/2026: validation số điện thoại và hướng tiếp theo
+
+- Các API tài khoản, giáo lý viên và giáo xứ chỉ chấp nhận số điện thoại Việt Nam
+  hợp lệ dạng `0...` hoặc `+84...`; hỗ trợ khoảng trắng, dấu chấm, gạch nối và ngoặc.
+- Các form tương ứng kiểm tra cùng quy tắc và hiển thị lỗi ngay tại trường nhập.
+- Chức năng tiếp theo được chốt là **Quản lý lớp học**.
+- Regression suite đạt 63 tests/320 assertions; `vue-tsc`, production build,
+  kiểm tra runtime và `git diff --check` đều đạt.
+
+## 20. Cập nhật 02/08/2026: quản lý lớp học
+
+- Đã bổ sung 10 API quản lý lớp: danh sách/bộ lọc, danh mục theo giáo xứ, chi tiết,
+  tạo, sửa, lưu trữ, khôi phục, phân giáo lý viên, ghi danh và lịch học.
+- Mã lớp duy nhất trong niên khóa; khối và phòng phải cùng giáo xứ. Lớp đã có
+  điểm danh không được đổi niên khóa hoặc khối.
+- Phân công hỗ trợ vai trò chính/phụ tá và cảnh báo trùng lịch giáo lý viên;
+  ghi danh giữ lịch sử active/inactive, chặn trùng niên khóa và vượt sức chứa.
+- Lịch học chuẩn hóa thứ `1–7`, vẫn đọc dữ liệu Chủ nhật legacy `0`; trùng phòng
+  luôn bị chặn, trùng giáo lý viên cần xác nhận rõ trước khi lưu.
+- Lưu trữ dùng soft delete và khôi phục giữ nguyên trạng thái, phân công, ghi danh,
+  lịch học cùng lịch sử điểm danh. Mọi mutation đều có activity log.
+- Trang `/admin/classes` có bộ lọc, phân trang, drawer chi tiết, form lớp và modal
+  chuyên biệt cho phân công, ghi danh, lịch học; có loading/error/empty/confirm state.
+- Browser QA đạt ở desktop và `390×844`; bảng mobile thu về cột quan trọng,
+  drawer không tràn ngang và bốn modal render đúng contract. Không thực hiện
+  mutation trong QA trình duyệt để giữ nguyên dữ liệu kiểm thử.
+- Regression suite đạt **80 tests/441 assertions**; 10 route API, type-check,
+  production build, Impeccable detector và `git diff --check` đều đạt.
+- Pint trên toàn bộ file thuộc tính năng lớp học đạt. Pint toàn repo vẫn báo các
+  file legacy ngoài phạm vi chưa theo formatter; không tự động format hàng loạt
+  để tránh tạo diff không liên quan.

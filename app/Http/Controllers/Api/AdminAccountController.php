@@ -7,8 +7,8 @@ use App\Models\ActivityLog;
 use App\Models\Child;
 use App\Models\ParentProfile;
 use App\Models\Parish;
-use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Rules\VietnamesePhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -64,18 +64,23 @@ class AdminAccountController extends ApiController
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20', new VietnamesePhoneNumber],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::exists('roles', 'name')],
             'parish_id' => ['nullable', Rule::exists('parishes', 'id')],
         ]);
+        if ($data['role'] === 'teacher') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hãy tạo giáo lý viên tại màn hình Quản lý giáo lý viên.',
+                'code' => 'TEACHER_CREATION_REQUIRES_PROFILE',
+            ], 422);
+        }
         $user = DB::transaction(function () use ($data) {
             $user = User::create(collect($data)->only(['name', 'email', 'phone', 'password'])->all());
             $user->assignRole($data['role']);
             $parishId = $data['parish_id'] ?? Parish::query()->value('id');
-            if ($data['role'] === 'teacher' && $parishId) {
-                TeacherProfile::create(['user_id' => $user->id, 'parish_id' => $parishId, 'code' => 'GLV-U'.$user->id]);
-            } elseif ($data['role'] === 'parent' && $parishId) {
+            if ($data['role'] === 'parent' && $parishId) {
                 ParentProfile::create(['user_id' => $user->id, 'parish_id' => $parishId, 'phone' => $data['phone'] ?? null]);
             } elseif ($data['role'] === 'child' && $parishId) {
                 Child::create(['user_id' => $user->id, 'parish_id' => $parishId, 'code' => 'TN-U'.$user->id, 'full_name' => $user->name]);
@@ -94,7 +99,7 @@ class AdminAccountController extends ApiController
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20', new VietnamesePhoneNumber],
         ]);
         $old = $user->only(['name', 'email', 'phone']);
         $user->update($data);
@@ -134,6 +139,13 @@ class AdminAccountController extends ApiController
         ]);
         if ($user->is($request->user()) && $data['role'] !== 'admin') {
             return $this->unsafeSelfChange();
+        }
+        if ($data['role'] === 'teacher' && ! $user->teacherProfile()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hãy tạo giáo lý viên tại màn hình Quản lý giáo lý viên.',
+                'code' => 'TEACHER_CREATION_REQUIRES_PROFILE',
+            ], 422);
         }
         $overlap = array_intersect($data['granted_permissions'], $data['denied_permissions']);
         if ($overlap) {

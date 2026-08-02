@@ -2,13 +2,16 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AdminAccountController;
+use App\Http\Controllers\Api\AdminClassController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminDirectoryController;
+use App\Http\Controllers\Api\AdminParishController;
+use App\Http\Controllers\Api\AdminTeacherController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClassController;
-use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\MfaController;
+use App\Http\Controllers\Api\TeacherController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->middleware('web')->group(function () {
@@ -63,11 +66,42 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
 
     Route::get('admin/dashboard', AdminDashboardController::class);
     Route::prefix('admin')->group(function () {
-        Route::get('parishes', [AdminDirectoryController::class, 'parishes']);
-        Route::get('teachers', [AdminDirectoryController::class, 'teachers']);
+        Route::prefix('parishes')
+            ->middleware(['can:access-admin', 'can:manage-system-settings'])
+            ->group(function () {
+                Route::get('/', [AdminParishController::class, 'index']);
+                Route::post('/', [AdminParishController::class, 'store']);
+                Route::get('{parish}', [AdminParishController::class, 'show']);
+                Route::patch('{parish}', [AdminParishController::class, 'update']);
+                Route::put('{parish}/teachers', [AdminParishController::class, 'assignTeachers']);
+                Route::delete('{parish}', [AdminParishController::class, 'destroy']);
+            });
+        Route::prefix('teachers')
+            ->middleware(['can:access-admin', 'can:manage-users'])
+            ->group(function () {
+                Route::get('/', [AdminTeacherController::class, 'index']);
+                Route::post('/', [AdminTeacherController::class, 'store']);
+                Route::get('{teacher}', [AdminTeacherController::class, 'show']);
+                Route::patch('{teacher}', [AdminTeacherController::class, 'update']);
+                Route::delete('{teacher}', [AdminTeacherController::class, 'destroy']);
+                Route::post('{teacher}/restore', [AdminTeacherController::class, 'restore']);
+            });
+        Route::prefix('classes')
+            ->middleware('can:access-admin')
+            ->group(function () {
+                Route::get('/', [AdminClassController::class, 'index']);
+                Route::post('/', [AdminClassController::class, 'store'])->middleware('can:create-classes');
+                Route::get('options', [AdminClassController::class, 'options'])->middleware('can:view-classes');
+                Route::get('{class}', [AdminClassController::class, 'show'])->middleware('can:view-classes');
+                Route::patch('{class}', [AdminClassController::class, 'update'])->middleware('can:update-classes');
+                Route::put('{class}/teachers', [AdminClassController::class, 'assignTeachers'])->middleware('can:assign-teachers');
+                Route::put('{class}/enrollments', [AdminClassController::class, 'updateEnrollments'])->middleware('can:enroll-children');
+                Route::put('{class}/schedules', [AdminClassController::class, 'updateSchedules'])->middleware('can:update-classes');
+                Route::delete('{class}', [AdminClassController::class, 'destroy'])->middleware('can:delete-classes');
+                Route::post('{class}/restore', [AdminClassController::class, 'restore'])->middleware('can:delete-classes');
+            });
         Route::get('parents', [AdminDirectoryController::class, 'parents']);
         Route::get('children', [AdminDirectoryController::class, 'children']);
-        Route::get('classes', [AdminDirectoryController::class, 'classes']);
         Route::get('announcements', [AdminDirectoryController::class, 'announcements']);
     });
     Route::get('teacher/dashboard', [TeacherController::class, 'dashboard']);

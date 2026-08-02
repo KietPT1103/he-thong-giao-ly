@@ -70,12 +70,12 @@ const routes: RouteRecordRaw[] = [
 
     protectedRoute("/admin", "Tổng quan", ["admin"], () => import("../views/AdminDashboardView.vue")),
     protectedRoute("/admin/accounts", "Quản lý tài khoản", ["admin"], () => import("../views/AdminAccountsView.vue"), "manage-users"),
+    protectedRoute("/admin/parishes", "Giáo xứ", ["admin"], () => import("../views/AdminParishesView.vue"), "manage-system-settings"),
+    protectedRoute("/admin/teachers", "Giáo lý viên", ["admin"], () => import("../views/AdminTeachersView.vue"), "manage-users"),
+    protectedRoute("/admin/classes", "Lớp học", ["admin"], () => import("../views/AdminClassesView.vue"), "view-classes"),
     ...[
-        ["parishes", "Giáo xứ"],
-        ["teachers", "Giáo lý viên"],
         ["parents", "Phụ huynh"],
         ["children", "Thiếu nhi"],
-        ["classes", "Lớp học"],
         ["announcements", "Thông báo"],
     ].map(([module, title]) => ({
         path: `/admin/${module}`,

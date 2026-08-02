@@ -7,11 +7,6 @@ use App\Models\User;
 
 class CatechismClassPolicy
 {
-    public function before(User $user, string $ability): ?bool
-    {
-        return $user->can('manage-users') ? true : null;
-    }
-
     /**
      * Determine whether the user can view any models.
      */
@@ -25,7 +20,12 @@ class CatechismClassPolicy
      */
     public function view(User $user, CatechismClass $catechismClass): bool
     {
-        return $user->can('view-classes') && $user->teacherProfile?->classes()->whereKey($catechismClass)->exists();
+        if ($user->can('access-admin')) {
+            return $user->can('view-classes');
+        }
+
+        return $user->can('view-classes')
+            && $user->teacherProfile?->classes()->whereKey($catechismClass)->exists();
     }
 
     /**
