@@ -8,16 +8,31 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('parishes', function (Blueprint $table) {
-            $table->string('phone', 30)->nullable()->after('code');
-            $table->string('email')->nullable()->after('phone');
-        });
+        if (! Schema::hasColumn('parishes', 'phone')) {
+            Schema::table('parishes', function (Blueprint $table) {
+                $table->string('phone', 30)->nullable();
+            });
+        }
+
+        if (! Schema::hasColumn('parishes', 'email')) {
+            Schema::table('parishes', function (Blueprint $table) {
+                $table->string('email')->nullable();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('parishes', function (Blueprint $table) {
-            $table->dropColumn(['phone', 'email']);
-        });
+        if (Schema::hasColumn('parishes', 'email')) {
+            Schema::table('parishes', function (Blueprint $table) {
+                $table->dropColumn('email');
+            });
+        }
+
+        if (Schema::hasColumn('parishes', 'phone')) {
+            Schema::table('parishes', function (Blueprint $table) {
+                $table->dropColumn('phone');
+            });
+        }
     }
 };
