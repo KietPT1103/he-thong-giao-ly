@@ -180,6 +180,38 @@ class AccountManagementTest extends TestCase
             'granted_permissions' => [],
             'denied_permissions' => [],
         ])->assertUnprocessable();
+
+        $this->putJson("/api/admin/accounts/{$admin->id}/access", [
+            'role' => 'admin',
+            'granted_permissions' => [],
+            'denied_permissions' => ['manage-users'],
+        ])->assertUnprocessable()->assertJsonPath('code', 'ADMIN_FULL_ACCESS_REQUIRED');
+    }
+
+    public function test_system_does_not_allow_a_second_admin_account(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $parent = User::where('email', 'parent@giaoly.test')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+            ->postJson('/api/admin/accounts', [
+                'name' => 'Quản trị viên thứ hai',
+                'email' => 'second-admin@giaoly.test',
+                'password' => 'secure-password',
+                'role' => 'admin',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'SINGLE_ADMIN_ACCOUNT');
+
+        $this->putJson("/api/admin/accounts/{$parent->id}/access", [
+            'role' => 'admin',
+            'granted_permissions' => [],
+            'denied_permissions' => [],
+        ])->assertUnprocessable()->assertJsonPath('code', 'SINGLE_ADMIN_ACCOUNT');
+
+        $this->assertSame(1, User::role('admin')->count());
+        $this->assertTrue($parent->fresh()->hasRole('parent'));
     }
 
     public function test_profile_fields_do_not_require_password_but_blocking_an_account_does(): void

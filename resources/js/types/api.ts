@@ -20,7 +20,9 @@ export interface User {
     last_login_at?: string | null;
     must_change_password: boolean;
     mfa_enabled?: boolean;
-}export interface PaginatedResponse<T> {
+    child_profile_id?: number | null;
+}
+export interface PaginatedResponse<T> {
     data: T[];
     current_page: number;
     last_page: number;

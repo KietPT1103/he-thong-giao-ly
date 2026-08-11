@@ -25,22 +25,29 @@ watch(() => props.open, (open) => {
     search.value = "";
     statuses.value = Object.fromEntries((props.model?.enrollments ?? []).map(item => [item.child.id,item.status]));
 });
-function add(id:number) { statuses.value = {...statuses.value,[id]:"active"}; }
+function add(id:number) {
+    if (props.saving) return;
+    statuses.value = {...statuses.value,[id]:"active"};
+}
+function submit() {
+    if (props.saving) return;
+    emit("submit", Object.entries(statuses.value).map(([child_id,status]) => ({child_id:Number(child_id),status})));
+}
 </script>
 
 <template>
-    <AModal :open="open" title="Ghi danh thiếu nhi" width="720px" centered :mask-closable="false" :closable="!saving" :confirm-loading="saving" ok-text="Lưu danh sách" cancel-text="Hủy" @cancel="emit('close')" @ok="emit('submit', Object.entries(statuses).map(([child_id,status]) => ({child_id:Number(child_id),status})))">
+    <AModal :open="open" title="Ghi danh thiếu nhi" width="720px" centered :mask-closable="false" :closable="!saving" :keyboard="!saving" :confirm-loading="saving" :cancel-button-props="{ disabled: saving }" ok-text="Lưu danh sách" cancel-text="Hủy" @cancel="emit('close')" @ok="submit">
         <div class="enrollment-summary"><span>{{ model?.name }}</span><strong>{{ activeCount }}<template v-if="capacity !== null"> / {{ capacity }}</template> đang học</strong></div>
-        <AInputSearch v-model:value="search" allow-clear size="large" placeholder="Tìm theo tên hoặc mã thiếu nhi" @search="emit('search', search.trim())" />
+        <AInputSearch v-model:value="search" allow-clear size="large" :disabled="saving" placeholder="Tìm theo tên hoặc mã thiếu nhi" @search="emit('search', search.trim())" />
         <div v-if="people.length" class="enrollment-list">
             <div v-for="child in people" :key="child.id" class="enrollment-row">
                 <span class="child-mark">{{ child.full_name?.slice(0,1).toUpperCase() }}</span>
                 <span class="child-copy"><b>{{ child.full_name }}</b><small>{{ child.code }}</small></span>
                 <template v-if="statuses[child.id]">
                     <ATag :color="statuses[child.id] === 'active' ? 'success' : 'default'">{{ statuses[child.id] === 'active' ? 'Đang học' : 'Đã rút' }}</ATag>
-                    <ASelect v-model:value="statuses[child.id]" class="status-select" :options="[{value:'active',label:'Đang học'},{value:'inactive',label:'Rút khỏi lớp'}]" />
+                    <ASelect v-model:value="statuses[child.id]" class="status-select" :disabled="saving" :options="[{value:'active',label:'Đang học'},{value:'inactive',label:'Rút khỏi lớp'}]" />
                 </template>
-                <button v-else type="button" class="enroll-button" @click="add(child.id)">Ghi danh</button>
+                <button v-else type="button" class="enroll-button" :disabled="saving" @click="add(child.id)">Ghi danh</button>
             </div>
         </div>
         <AEmpty v-else description="Không có thiếu nhi phù hợp." class="py-8" />

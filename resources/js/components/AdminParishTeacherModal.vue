@@ -25,6 +25,7 @@ const apiMessage = (cause: unknown, fallback: string) =>
     (cause as {response?:{data?:{message?:string}}}).response?.data?.message ?? fallback;
 
 async function load() {
+    if (loading.value || props.saving) return;
     loading.value = true;
     error.value = "";
     try {
@@ -41,9 +42,16 @@ async function load() {
 }
 
 function toggle(teacherId:number, checked:boolean) {
+    if (props.saving) return;
     selectedIds.value = checked
         ? [...selectedIds.value, teacherId]
         : selectedIds.value.filter((id) => id !== teacherId);
+}
+function close() {
+    if (!props.saving) emit("close");
+}
+function submit() {
+    if (!props.saving && selectedIds.value.length) emit("submit", [...selectedIds.value]);
 }
 
 watch(() => props.open, (open) => {
@@ -55,7 +63,7 @@ watch(() => props.open, (open) => {
 </script>
 
 <template>
-    <AModal :open="open" :footer="null" width="680px" :mask-closable="false" :closable="!saving" centered @cancel="emit('close')">
+    <AModal :open="open" :footer="null" width="680px" :mask-closable="false" :closable="!saving" :keyboard="!saving" centered @cancel="close">
         <template #title>
             <div class="flex items-center gap-3 pr-8">
                 <span class="grid size-10 shrink-0 place-items-center rounded-[10px] bg-blue-50 text-blue-600"><UserRoundPlus class="size-5" /></span>
@@ -64,7 +72,7 @@ watch(() => props.open, (open) => {
         </template>
 
         <AAlert v-if="error" type="error" show-icon :message="error" class="mb-3" />
-        <AInputSearch v-model:value="search" allow-clear size="large" placeholder="Tìm theo tên hoặc email" @search="load">
+        <AInputSearch v-model:value="search" allow-clear size="large" :disabled="saving" placeholder="Tìm theo tên hoặc email" @search="load">
             <template #enterButton><AButton type="primary" :loading="loading"><Search class="size-4" /></AButton></template>
         </AInputSearch>
 
@@ -83,8 +91,8 @@ watch(() => props.open, (open) => {
         <div class="mt-4 flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <span class="text-xs text-slate-500">Đã chọn {{ selectedIds.length }} giáo lý viên</span>
             <div class="grid grid-cols-2 gap-2 sm:flex">
-                <AButton size="large" :disabled="saving" @click="emit('close')">Hủy</AButton>
-                <AButton type="primary" size="large" :disabled="selectedIds.length === 0" :loading="saving" @click="emit('submit', selectedIds)">Tiếp tục</AButton>
+                <AButton size="large" :disabled="saving" @click="close">Hủy</AButton>
+                <AButton type="primary" size="large" :disabled="selectedIds.length === 0" :loading="saving" @click="submit">Tiếp tục</AButton>
             </div>
         </div>
     </AModal>

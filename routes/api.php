@@ -2,15 +2,18 @@
 
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AdminAccountController;
+use App\Http\Controllers\Api\AdminChildController;
 use App\Http\Controllers\Api\AdminClassController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminDirectoryController;
+use App\Http\Controllers\Api\AdminParentController;
 use App\Http\Controllers\Api\AdminParishController;
 use App\Http\Controllers\Api\AdminTeacherController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\MfaController;
+use App\Http\Controllers\Api\QrAttendanceController;
 use App\Http\Controllers\Api\TeacherController;
 use Illuminate\Support\Facades\Route;
 
@@ -100,8 +103,28 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
                 Route::delete('{class}', [AdminClassController::class, 'destroy'])->middleware('can:delete-classes');
                 Route::post('{class}/restore', [AdminClassController::class, 'restore'])->middleware('can:delete-classes');
             });
-        Route::get('parents', [AdminDirectoryController::class, 'parents']);
-        Route::get('children', [AdminDirectoryController::class, 'children']);
+        Route::prefix('parents')->middleware('can:access-admin')->group(function () {
+            Route::get('/', [AdminParentController::class, 'index'])->middleware('can:view-parents');
+            Route::get('options', [AdminParentController::class, 'options'])->middleware('can:view-parents');
+            Route::post('/', [AdminParentController::class, 'store'])->middleware('can:create-parents');
+            Route::get('{parent}', [AdminParentController::class, 'show'])->middleware('can:view-parents');
+            Route::patch('{parent}', [AdminParentController::class, 'update'])->middleware('can:update-parents');
+            Route::delete('{parent}', [AdminParentController::class, 'destroy'])
+                ->middleware(['can:manage-users', 'password.recent', 'throttle:sensitive']);
+            Route::post('{parent}/restore', [AdminParentController::class, 'restore'])->middleware('can:manage-users');
+        });
+        Route::prefix('children')->middleware('can:access-admin')->group(function () {
+            Route::get('/', [AdminChildController::class, 'index'])->middleware('can:view-children');
+            Route::get('options', [AdminChildController::class, 'options'])->middleware('can:view-children');
+            Route::post('/', [AdminChildController::class, 'store'])->middleware('can:create-children');
+            Route::get('{child}', [AdminChildController::class, 'show'])->middleware('can:view-children');
+            Route::patch('{child}', [AdminChildController::class, 'update'])->middleware('can:update-children');
+            Route::delete('{child}', [AdminChildController::class, 'destroy'])
+                ->middleware(['can:delete-children', 'password.recent', 'throttle:sensitive']);
+            Route::post('{child}/restore', [AdminChildController::class, 'restore'])->middleware('can:delete-children');
+            Route::post('{child}/qr/rotate', [QrAttendanceController::class, 'rotate'])
+                ->middleware(['can:rotate-child-qr', 'password.recent', 'throttle:sensitive']);
+        });
         Route::get('announcements', [AdminDirectoryController::class, 'announcements']);
     });
     Route::get('teacher/dashboard', [TeacherController::class, 'dashboard']);
@@ -113,7 +136,11 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('attendance-sessions/{session}', [AttendanceController::class, 'show']);
     Route::post('attendance-sessions/{session}/mark', [AttendanceController::class, 'mark']);
     Route::post('attendance-sessions/{session}/mark-all-present', [AttendanceController::class, 'markAll']);
+    Route::post('attendance-sessions/{session}/qr/scan', [QrAttendanceController::class, 'scan'])
+        ->middleware(['can:scan-attendance-qr', 'throttle:qr-scan']);
     Route::get('attendance-sessions/{session}/summary', [AttendanceController::class, 'summary']);
+    Route::get('children/{child}/qr', [QrAttendanceController::class, 'show'])->middleware('can:view-child-qr');
+    Route::get('parents/me/children', [QrAttendanceController::class, 'familyChildren'])->middleware('can:view-child-qr');
 });
 
 if (app()->environment('testing')) {

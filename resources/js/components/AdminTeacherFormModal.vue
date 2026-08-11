@@ -82,6 +82,7 @@ watch(() => props.open, (open) => {
 });
 
 async function submit() {
+    if (props.saving) return;
     try {
         await formRef.value?.validate();
         const shared = {
@@ -108,6 +109,7 @@ async function submit() {
         :closable="!saving"
         :mask-closable="false"
         :keyboard="!saving"
+        :cancel-button-props="{ disabled: saving }"
         :ok-text="editing ? 'Lưu thay đổi' : 'Tạo giáo lý viên'"
         cancel-text="Hủy"
         width="680px"
@@ -115,7 +117,7 @@ async function submit() {
         @cancel="emit('close', dirty)"
         @ok="submit"
     >
-        <AForm ref="formRef" :model="form" :rules="rules" layout="vertical" class="teacher-form">
+        <AForm ref="formRef" :model="form" :rules="rules" :disabled="saving" layout="vertical" class="teacher-form">
             <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                 <AFormItem class="sm:col-span-2" label="Họ và tên" name="name" required :help="errors.name" :validate-status="errors.name ? 'error' : undefined">
                     <AInput v-model:value="form.name" size="large" autocomplete="name" placeholder="Ví dụ: Nguyễn Văn An" />

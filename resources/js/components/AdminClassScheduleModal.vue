@@ -22,11 +22,15 @@ watch(() => props.open, (open) => {
     error.value = "";
     rows.value = (props.model?.schedules ?? []).map(({weekday,starts_at,ends_at,starts_on,ends_on}) => ({weekday,starts_at,ends_at,starts_on,ends_on}));
 });
-function add() { rows.value.push({weekday:7,starts_at:"08:00",ends_at:"09:30",starts_on:null,ends_on:null}); }
+function add() {
+    if (props.saving) return;
+    rows.value.push({weekday:7,starts_at:"08:00",ends_at:"09:30",starts_on:null,ends_on:null});
+}
 function changeDate(row:ClassScheduleInput, field:"starts_on"|"ends_on", value:string|number|undefined) {
     row[field] = value ? String(value) : null;
 }
 function submit() {
+    if (props.saving) return;
     const invalid = rows.value.find(row => !row.weekday || !row.starts_at || !row.ends_at || row.starts_at >= row.ends_at || (row.starts_on && row.ends_on && row.starts_on > row.ends_on));
     if (invalid) { error.value = "Kiểm tra lại thứ, giờ bắt đầu/kết thúc và khoảng ngày của từng lịch."; return; }
     error.value = "";
@@ -35,21 +39,21 @@ function submit() {
 </script>
 
 <template>
-    <AModal :open="open" title="Thiết lập lịch học" width="820px" centered :mask-closable="false" :closable="!saving" :confirm-loading="saving" ok-text="Lưu lịch học" cancel-text="Hủy" @cancel="emit('close')" @ok="submit">
-        <div class="schedule-heading"><p>{{ model?.name }} · {{ rows.length }} lịch định kỳ</p><AButton @click="add"><template #icon><Plus class="size-4" /></template>Thêm lịch</AButton></div>
+    <AModal :open="open" title="Thiết lập lịch học" width="820px" centered :mask-closable="false" :closable="!saving" :keyboard="!saving" :confirm-loading="saving" :cancel-button-props="{ disabled: saving }" ok-text="Lưu lịch học" cancel-text="Hủy" @cancel="emit('close')" @ok="submit">
+        <div class="schedule-heading"><p>{{ model?.name }} · {{ rows.length }} lịch định kỳ</p><AButton :disabled="saving" @click="add"><template #icon><Plus class="size-4" /></template>Thêm lịch</AButton></div>
         <AAlert v-if="error" type="error" show-icon :message="error" class="mb-3" />
         <div v-if="rows.length" class="schedule-grid">
             <div class="schedule-labels" aria-hidden="true"><span>Ngày học</span><span>Bắt đầu</span><span>Kết thúc</span><span>Từ ngày</span><span>Đến ngày</span><span></span></div>
             <div v-for="(row,index) in rows" :key="index" class="schedule-row">
-                <ASelect v-model:value="row.weekday" aria-label="Ngày học" :options="weekdays" />
-                <AInput v-model:value="row.starts_at" aria-label="Giờ bắt đầu" type="time" />
-                <AInput v-model:value="row.ends_at" aria-label="Giờ kết thúc" type="time" />
-                <AInput :value="row.starts_on ?? ''" aria-label="Ngày bắt đầu áp dụng" type="date" @update:value="changeDate(row,'starts_on',$event)" />
-                <AInput :value="row.ends_on ?? ''" aria-label="Ngày kết thúc áp dụng" type="date" @update:value="changeDate(row,'ends_on',$event)" />
-                <ATooltip title="Xóa lịch"><AButton danger type="text" aria-label="Xóa lịch" @click="rows.splice(index,1)"><template #icon><Trash2 class="size-4" /></template></AButton></ATooltip>
+                <ASelect v-model:value="row.weekday" aria-label="Ngày học" :disabled="saving" :options="weekdays" />
+                <AInput v-model:value="row.starts_at" aria-label="Giờ bắt đầu" :disabled="saving" type="time" />
+                <AInput v-model:value="row.ends_at" aria-label="Giờ kết thúc" :disabled="saving" type="time" />
+                <AInput :value="row.starts_on ?? ''" aria-label="Ngày bắt đầu áp dụng" :disabled="saving" type="date" @update:value="changeDate(row,'starts_on',$event)" />
+                <AInput :value="row.ends_on ?? ''" aria-label="Ngày kết thúc áp dụng" :disabled="saving" type="date" @update:value="changeDate(row,'ends_on',$event)" />
+                <ATooltip title="Xóa lịch"><AButton danger type="text" aria-label="Xóa lịch" :disabled="saving" @click="rows.splice(index,1)"><template #icon><Trash2 class="size-4" /></template></AButton></ATooltip>
             </div>
         </div>
-        <div v-else class="schedule-empty"><p>Chưa có lịch học định kỳ.</p><AButton type="primary" @click="add"><template #icon><Plus class="size-4" /></template>Thêm lịch đầu tiên</AButton></div>
+        <div v-else class="schedule-empty"><p>Chưa có lịch học định kỳ.</p><AButton type="primary" :disabled="saving" @click="add"><template #icon><Plus class="size-4" /></template>Thêm lịch đầu tiên</AButton></div>
     </AModal>
 </template>
 

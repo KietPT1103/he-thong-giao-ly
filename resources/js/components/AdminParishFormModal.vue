@@ -47,6 +47,7 @@ watch(() => props.open, (open) => {
 });
 
 async function submit() {
+    if (props.saving) return;
     try {
         await formRef.value?.validate();
         emit("submit", {
@@ -69,6 +70,7 @@ async function submit() {
         :closable="!saving"
         :mask-closable="false"
         :keyboard="!saving"
+        :cancel-button-props="{ disabled: saving }"
         :ok-text="editing ? 'Lưu thay đổi' : 'Tạo giáo xứ'"
         cancel-text="Hủy"
         width="620px"
@@ -76,7 +78,7 @@ async function submit() {
         @cancel="emit('close', dirty)"
         @ok="submit"
     >
-        <AForm ref="formRef" :model="form" :rules="rules" layout="vertical" class="parish-form">
+        <AForm ref="formRef" :model="form" :rules="rules" :disabled="saving" layout="vertical" class="parish-form">
             <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                 <AFormItem class="sm:col-span-2" label="Tên giáo xứ" name="name" required :help="errors.name" :validate-status="errors.name ? 'error' : undefined">
                     <AInput v-model:value="form.name" size="large" autocomplete="organization" placeholder="Ví dụ: Giáo xứ An Bình" />

@@ -17,10 +17,12 @@ import ATag from "ant-design-vue/es/tag";
 import ATabs, { TabPane as ATabPane } from "ant-design-vue/es/tabs";
 import ATooltip from "ant-design-vue/es/tooltip";
 import type { ColumnsType } from "ant-design-vue/es/table/interface";
-import { GraduationCap, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck, UserRound } from "lucide-vue-next";
+import { Check, GraduationCap, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck, UserRound } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { createAccount, getAccountOptions, listAccounts, resetAccountPassword, updateAccount, updateAccountAccess, updateAccountStatus, type AccountMeta, type AccountOptions } from "../api/accounts";
+import AccountPermissionEditorModal from "../components/AccountPermissionEditorModal.vue";
 import AdminActionConfirmModal from "../components/AdminActionConfirmModal.vue";
+import { displayPermission, displayRole, permissionGroups, roleDescriptions } from "../constants/permissionCatalog";
 import { useAuthStore } from "../stores/authStore";
 import type { User } from "../types/api";
 import { vietnamesePhoneRule } from "../utils/phoneValidation";
@@ -36,13 +38,19 @@ interface SensitiveAction {
     after?: (result: User | null) => void;
 }
 
+interface AccessPayload {
+    role: string;
+    granted_permissions: string[];
+    denied_permissions: string[];
+}
+
 const auth = useAuthStore();
 const router = useRouter();
 const accounts = ref<User[]>([]), selected = ref<User | null>(null), options = ref<AccountOptions>({ roles: [], permissions: [] });
 const meta = ref<AccountMeta>({ current_page: 1, last_page: 1, per_page: 15, total: 0 });
 const loading = ref(true), saving = ref(false), listError = ref(""), editorError = ref("");
 const search = ref(""), roleFilter = ref(""), statusFilter = ref("");
-const createOpen = ref(false), activeTab = ref("info"), resetPassword = ref(""), resetPasswordConfirmation = ref("");
+const createOpen = ref(false), permissionEditorOpen = ref(false), activeTab = ref("info"), resetPassword = ref(""), resetPasswordConfirmation = ref("");
 const confirmedUntil = ref(0), confirmOpen = ref(false), confirmNeedsPassword = ref(false), confirmError = ref("");
 const discardOpen = ref(false), editSnapshot = ref("");
 const pendingAction = shallowRef<SensitiveAction | null>(null);
@@ -58,56 +66,24 @@ const createRules: Record<string, RuleObject[]> = {
     password: [{ required: true, message: "Hãy nhập mật khẩu." }, { min: 8, message: "Mật khẩu phải có ít nhất 8 ký tự." }],
     role: [{ required: true, message: "Hãy chọn vai trò." }],
 };
-const roleLabels: Record<string, string> = { admin: "Quản trị", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" };
-const permissionLabels: Record<string, string> = {
-    "manage-system-settings": "Quản lý cài đặt hệ thống",
-    "view-activity-logs": "Xem nhật ký hoạt động",
-    "manage-users": "Quản lý tài khoản",
-    "manage-roles": "Quản lý vai trò",
-    "manage-permissions": "Quản lý quyền",
-    "view-academic-years": "Xem niên khóa",
-    "create-academic-years": "Tạo niên khóa",
-    "update-academic-years": "Cập nhật niên khóa",
-    "delete-academic-years": "Xóa niên khóa",
-    "view-levels": "Xem khối giáo lý",
-    "create-levels": "Tạo khối giáo lý",
-    "update-levels": "Cập nhật khối giáo lý",
-    "delete-levels": "Xóa khối giáo lý",
-    "view-classes": "Xem lớp học",
-    "create-classes": "Tạo lớp học",
-    "update-classes": "Cập nhật lớp học",
-    "delete-classes": "Xóa lớp học",
-    "assign-teachers": "Phân công giáo lý viên",
-    "enroll-children": "Xếp lớp thiếu nhi",
-    "view-children": "Xem thiếu nhi",
-    "create-children": "Tạo thiếu nhi",
-    "update-children": "Cập nhật thiếu nhi",
-    "delete-children": "Xóa thiếu nhi",
-    "view-parents": "Xem phụ huynh",
-    "create-parents": "Tạo phụ huynh",
-    "update-parents": "Cập nhật phụ huynh",
-    "link-parent-child": "Liên kết phụ huynh và thiếu nhi",
-    "view-attendance": "Xem điểm danh",
-    "create-attendance-session": "Tạo buổi điểm danh",
-    "take-attendance": "Thực hiện điểm danh",
-    "update-attendance": "Cập nhật điểm danh",
-    "view-attendance-reports": "Xem báo cáo điểm danh",
-    "create-leave-request": "Tạo đơn xin phép",
-    "view-leave-requests": "Xem đơn xin phép",
-    "approve-leave-request": "Duyệt đơn xin phép",
-    "reject-leave-request": "Từ chối đơn xin phép",
-    "view-notifications": "Xem thông báo",
-    "send-notifications": "Gửi thông báo",
-    "manage-announcements": "Quản lý thông báo",
-};
-const displayRole = (role: string) => roleLabels[role] ?? role;
-const displayPermission = (permission: string) => permissionLabels[permission] ?? permission;
-const roleDefaults = computed(() => options.value.roles.find((item) => item.name === editForm.role)?.permissions ?? []);
 const roleOptions = computed(() => options.value.roles.map((role) => ({ label: displayRole(role.name), value: role.name })));
-const accountCreationRoleOptions = computed(() => roleOptions.value.filter((role) => role.value !== "teacher"));
-const accountEditorRoleOptions = computed(() => selected.value?.roles.includes("teacher")
-    ? roleOptions.value
-    : accountCreationRoleOptions.value);
+const nonAdminRoleOptions = computed(() => roleOptions.value.filter((role) => role.value !== "admin"));
+const accountCreationRoleOptions = computed(() => nonAdminRoleOptions.value.filter((role) => role.value !== "teacher"));
+const accountEditorRoleOptions = computed(() => {
+    if (selected.value?.roles.includes("admin")) return roleOptions.value.filter((role) => role.value === "admin");
+    if (selected.value?.roles.includes("teacher")) return nonAdminRoleOptions.value;
+    return accountCreationRoleOptions.value;
+});
+const selectedRole = computed(() => selected.value?.roles[0] ?? "");
+const selectedPermissionGroups = computed(() => permissionGroups
+    .map((group) => ({
+        ...group,
+        permissions: group.permissions.filter((permission) => selected.value?.permissions.includes(permission)),
+    }))
+    .filter((group) => group.permissions.length > 0));
+const customPermissionCount = computed(() => (
+    (selected.value?.granted_permissions?.length ?? 0) + (selected.value?.denied_permissions?.length ?? 0)
+));
 const columns: ColumnsType<User> = [
     { title: "Tài khoản", key: "account", width: 300 },
     { title: "Vai trò", key: "roles", width: 170, responsive: ["md"] },
@@ -118,7 +94,7 @@ const columns: ColumnsType<User> = [
 const displayStatus = (account: User) => account.deleted_at ? "Đã lưu trữ" : account.status === "active" ? "Hoạt động" : "Đã chặn";
 const isSelf = (account: User) => account.id === auth.user?.id;
 const apiMessage = (error: unknown, fallback: string) => (error as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback;
-const serializedEditor = () => JSON.stringify({ name: editForm.name, email: editForm.email, phone: editForm.phone, role: editForm.role, granted: [...editForm.granted].sort(), denied: [...editForm.denied].sort(), resetPassword: resetPassword.value, resetPasswordConfirmation: resetPasswordConfirmation.value });
+const serializedEditor = () => JSON.stringify({ name: editForm.name, email: editForm.email, phone: editForm.phone, resetPassword: resetPassword.value, resetPasswordConfirmation: resetPasswordConfirmation.value });
 const editorDirty = computed(() => Boolean(selected.value) && serializedEditor() !== editSnapshot.value);
 
 async function load(page = 1) {
@@ -151,6 +127,7 @@ function openEditor(account: User) {
 }
 
 function closeEditor() {
+    permissionEditorOpen.value = false;
     selected.value = null;
     resetPassword.value = "";
     resetPasswordConfirmation.value = "";
@@ -181,15 +158,8 @@ function rowInteractions(account: User) {
     };
 }
 
-function setPermission(permission: string, state: "default" | "grant" | "deny") {
-    editForm.granted = editForm.granted.filter((item) => item !== permission);
-    editForm.denied = editForm.denied.filter((item) => item !== permission);
-    if (state === "grant") editForm.granted.push(permission);
-    if (state === "deny") editForm.denied.push(permission);
-}
-
 async function saveInfo() {
-    if (!selected.value) return;
+    if (!selected.value || saving.value) return;
     saving.value = true;
     editorError.value = "";
     try {
@@ -206,6 +176,7 @@ async function saveInfo() {
 }
 
 function openSensitiveAction(action: SensitiveAction, alwaysConfirm = false) {
+    if (saving.value) return;
     pendingAction.value = action;
     confirmNeedsPassword.value = Date.now() >= confirmedUntil.value;
     confirmError.value = "";
@@ -215,7 +186,7 @@ function openSensitiveAction(action: SensitiveAction, alwaysConfirm = false) {
 
 async function executeSensitiveAction(password: string) {
     const action = pendingAction.value;
-    if (!action) return;
+    if (!action || saving.value) return;
     saving.value = true;
     confirmError.value = "";
     try {
@@ -259,7 +230,7 @@ function requestStatusChange(account: User) {
     }, true);
 }
 
-function requestSaveAccess() {
+function requestSaveAccess(payload: AccessPayload) {
     if (!selected.value) return;
     const account = selected.value;
     openSensitiveAction({
@@ -268,8 +239,11 @@ function requestSaveAccess() {
         confirmText: "Lưu phân quyền",
         success: "Đã cập nhật vai trò và quyền.",
         target: account,
-        run: async () => (await updateAccountAccess(account.id, { role: editForm.role, granted_permissions: editForm.granted, denied_permissions: editForm.denied })).data.data,
-        after: (updated) => { if (updated) syncEditor(updated); },
+        run: async () => (await updateAccountAccess(account.id, payload)).data.data,
+        after: (updated) => {
+            if (updated) syncEditor(updated);
+            permissionEditorOpen.value = false;
+        },
     });
 }
 
@@ -295,6 +269,7 @@ function requestPasswordReset() {
 }
 
 function requestCreate() {
+    if (saving.value) return;
     if (!createForm.name || !createForm.email || createForm.password.length < 8 || !createForm.role) {
         toast.error("Hãy nhập đủ họ tên, email, vai trò và mật khẩu tối thiểu 8 ký tự.");
         return;
@@ -310,8 +285,13 @@ function requestCreate() {
 }
 
 function openTeacherCreation() {
+    if (saving.value) return;
     createOpen.value = false;
     void router.push({ path: "/admin/teachers", query: { create: "1" } });
+}
+
+function closeCreateModal() {
+    if (!saving.value) createOpen.value = false;
 }
 
 onMounted(async () => {
@@ -378,7 +358,9 @@ onMounted(async () => {
         :footer="null"
         :width="960"
         :mask-closable="false"
-        :wrap-class-name="activeTab === 'access' ? 'account-editor-modal account-editor-modal--tall' : 'account-editor-modal account-editor-modal--compact'"
+        :closable="!saving"
+        :keyboard="!saving"
+        wrap-class-name="account-editor-modal account-editor-modal--compact"
         centered
         @cancel="requestEditorClose"
     >
@@ -398,7 +380,7 @@ onMounted(async () => {
             <AAlert v-if="editorError" type="error" show-icon closable :message="editorError" class="mb-3" @close="editorError = ''" />
             <ATabs v-model:active-key="activeTab" class="account-editor-tabs">
                 <ATabPane key="info" tab="Thông tin">
-                    <AForm :model="editForm" :rules="infoRules" layout="vertical" class="m-0 [&_.ant-form-item]:mb-4 [&_.ant-form-item-label>label]:text-xs [&_.ant-form-item-label>label]:font-semibold [&_.ant-form-item-label>label]:text-slate-700" @finish="saveInfo">
+                    <AForm :model="editForm" :rules="infoRules" :disabled="saving" layout="vertical" class="m-0 [&_.ant-form-item]:mb-4 [&_.ant-form-item-label>label]:text-xs [&_.ant-form-item-label>label]:font-semibold [&_.ant-form-item-label>label]:text-slate-700" @finish="saveInfo">
                         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
                             <AFormItem label="Họ và tên" name="name" required><AInput v-model:value="editForm.name" size="large" class="!rounded-[10px]" /></AFormItem>
                             <AFormItem label="Email" name="email" required><AInput v-model:value="editForm.email" size="large" type="email" class="!rounded-[10px]" /></AFormItem>
@@ -410,24 +392,50 @@ onMounted(async () => {
                     </AForm>
                 </ATabPane>
                 <ATabPane key="access" tab="Phân quyền">
-                    <div class="m-0">
-                        <div class="mb-5 flex items-start gap-3">
-                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600"><ShieldCheck aria-hidden="true" class="size-5 stroke-[1.75]" /></span>
-                            <div class="min-w-0"><h3 class="m-0 text-sm font-bold leading-6 text-blue-950">Vai trò và quyền truy cập</h3><p class="mt-0.5 mb-0 text-pretty text-xs leading-5 text-slate-500">Vai trò cung cấp quyền mặc định; quyền tùy chỉnh sẽ ghi đè khi cần.</p></div>
-                        </div>
-                        <label class="mt-2 block"><span class="mb-2 block text-xs font-semibold text-slate-700">Vai trò</span><ASelect v-model:value="editForm.role" size="large" class="w-full [&_.ant-select-selector]:!rounded-[10px]" :options="accountEditorRoleOptions" /></label>
-                        <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                            <div v-for="permission in options.permissions" :key="permission" class="flex min-h-14 items-center justify-between gap-4 border-t border-slate-200 px-4 py-2.5 first:border-t-0 max-sm:flex-col max-sm:items-stretch max-sm:gap-2.5 max-sm:px-3">
-                                <div class="flex min-w-0 flex-wrap items-center gap-2"><span class="truncate text-xs font-semibold text-slate-700">{{ displayPermission(permission) }}</span><ATag v-if="roleDefaults.includes(permission)" class="!m-0" color="blue">Theo vai trò</ATag></div>
-                                <div class="flex shrink-0 gap-1.5 max-sm:w-full">
-                                    <AButton size="small" class="min-w-16 rounded-lg max-sm:flex-1" :type="editForm.granted.includes(permission) ? 'primary' : 'default'" @click="setPermission(permission, editForm.granted.includes(permission) ? 'default' : 'grant')">Cấp</AButton>
-                                    <AButton size="small" class="min-w-16 rounded-lg max-sm:flex-1" :danger="editForm.denied.includes(permission)" @click="setPermission(permission, editForm.denied.includes(permission) ? 'default' : 'deny')">Chặn</AButton>
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="flex min-w-0 items-start gap-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600"><ShieldCheck aria-hidden="true" class="size-5 stroke-[1.75]" /></span>
+                                <div class="min-w-0">
+                                    <h3 class="m-0 text-sm font-bold leading-6 text-blue-950">Vai trò và quyền truy cập</h3>
+                                    <p class="mt-0.5 mb-0 text-pretty text-xs leading-5 text-slate-500">Xem nhanh quyền đang có; mở trình chỉnh sửa khi cần thay đổi.</p>
                                 </div>
                             </div>
+                            <AButton type="primary" :disabled="saving" class="shrink-0 rounded-[10px] font-semibold max-sm:w-full" @click="permissionEditorOpen = true">
+                                <template #icon><Pencil class="size-4" /></template>Chỉnh sửa
+                            </AButton>
                         </div>
-                        <div class="mt-5 flex justify-end">
-                            <AButton type="primary" size="large" :loading="saving" class="w-full rounded-[10px] font-semibold sm:w-auto sm:min-w-44" @click="requestSaveAccess"><template #icon><ShieldCheck class="size-4" /></template>Lưu phân quyền</AButton>
+
+                        <section class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4 sm:p-5">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-blue-600">Vai trò hiện tại</p>
+                                    <h4 class="mt-1 mb-0 text-base font-bold text-blue-950">{{ displayRole(selectedRole) }}</h4>
+                                    <p class="mt-1 mb-0 text-xs leading-5 text-slate-500">{{ roleDescriptions[selectedRole] ?? 'Quyền truy cập được thiết lập cho tài khoản này.' }}</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <ATag color="blue" class="!m-0">{{ selected.permissions.length }} quyền đang dùng</ATag>
+                                    <ATag v-if="customPermissionCount" color="purple" class="!m-0">{{ customPermissionCount }} tùy chỉnh</ATag>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div v-if="selectedPermissionGroups.length" class="grid gap-3 sm:grid-cols-2">
+                            <section v-for="group in selectedPermissionGroups" :key="group.id" class="rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200">
+                                <div class="mb-2.5 flex items-center justify-between gap-3">
+                                    <h4 class="m-0 text-xs font-bold text-blue-950">{{ group.label }}</h4>
+                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600">{{ group.permissions.length }}</span>
+                                </div>
+                                <ul class="m-0 grid list-none gap-2 p-0">
+                                    <li v-for="permission in group.permissions.slice(0, 3)" :key="permission" class="flex items-start gap-2 text-xs leading-5 text-slate-600">
+                                        <Check aria-hidden="true" class="mt-0.5 size-3.5 shrink-0 stroke-[2.25] text-blue-500" />
+                                        <span>{{ displayPermission(permission) }}</span>
+                                    </li>
+                                </ul>
+                                <p v-if="group.permissions.length > 3" class="mt-2 mb-0 pl-[22px] text-[11px] font-semibold text-blue-600">+{{ group.permissions.length - 3 }} quyền khác</p>
+                            </section>
                         </div>
+                        <AAlert v-else type="info" show-icon message="Tài khoản chưa có quyền sử dụng tính năng nào." />
                     </div>
                 </ATabPane>
                 <ATabPane key="security" tab="Bảo mật">
@@ -449,8 +457,18 @@ onMounted(async () => {
         </template>
     </AModal>
 
-    <AModal v-model:open="createOpen" title="Tạo tài khoản" :confirm-loading="saving" ok-text="Tạo tài khoản" cancel-text="Hủy" @ok="requestCreate">
-        <AForm :model="createForm" :rules="createRules" layout="vertical" class="mt-5"><AFormItem label="Họ và tên" name="name" required><AInput v-model:value="createForm.name" size="large" /></AFormItem><AFormItem label="Email" name="email" required><AInput v-model:value="createForm.email" size="large" type="email" /></AFormItem><AFormItem label="Số điện thoại" name="phone"><AInput v-model:value="createForm.phone" size="large" inputmode="tel" autocomplete="tel" /></AFormItem><AFormItem label="Mật khẩu" name="password" required><AInputPassword v-model:value="createForm.password" size="large" /></AFormItem><AFormItem label="Vai trò" name="role" required><ASelect v-model:value="createForm.role" size="large" placeholder="Chọn vai trò" :options="accountCreationRoleOptions" /></AFormItem></AForm>
+    <AccountPermissionEditorModal
+        :open="permissionEditorOpen"
+        :account="selected"
+        :options="options"
+        :role-options="accountEditorRoleOptions"
+        :loading="saving"
+        @close="permissionEditorOpen = false"
+        @save="requestSaveAccess"
+    />
+
+    <AModal :open="createOpen" title="Tạo tài khoản" :confirm-loading="saving" :closable="!saving" :keyboard="!saving" :mask-closable="false" :cancel-button-props="{ disabled: saving }" ok-text="Tạo tài khoản" cancel-text="Hủy" @cancel="closeCreateModal" @ok="requestCreate">
+        <AForm :model="createForm" :rules="createRules" :disabled="saving" layout="vertical" class="mt-5"><AFormItem label="Họ và tên" name="name" required><AInput v-model:value="createForm.name" size="large" /></AFormItem><AFormItem label="Email" name="email" required><AInput v-model:value="createForm.email" size="large" type="email" /></AFormItem><AFormItem label="Số điện thoại" name="phone"><AInput v-model:value="createForm.phone" size="large" inputmode="tel" autocomplete="tel" /></AFormItem><AFormItem label="Mật khẩu" name="password" required><AInputPassword v-model:value="createForm.password" size="large" /></AFormItem><AFormItem label="Vai trò" name="role" required><ASelect v-model:value="createForm.role" size="large" placeholder="Chọn vai trò" :options="accountCreationRoleOptions" /></AFormItem></AForm>
     </AModal>
 
     <AdminActionConfirmModal :open="confirmOpen" :title="pendingAction?.title ?? ''" :description="pendingAction?.description ?? ''" :confirm-text="pendingAction?.confirmText" :target-name="pendingAction?.target?.name" :target-email="pendingAction?.target?.email" :require-password="confirmNeedsPassword" :danger="pendingAction?.danger" :loading="saving" :error-message="confirmError" @close="closeSensitiveConfirm" @confirm="executeSensitiveAction" />

@@ -10,6 +10,8 @@ export const getTeacherClasses = (page = 1) =>
     client.get<ApiResponse<CatechismClass[]>>("/teachers/me/classes", {
         params: { page },
     });
+export const getTeacherClass = (classId: number) =>
+    client.get<ApiResponse<CatechismClass>>(`/classes/${classId}`);
 export const getClassChildren = (classId: number, page = 1) =>
     client.get<ApiResponse<Child[]>>(`/classes/${classId}/children`, {
         params: { page },

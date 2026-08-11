@@ -61,6 +61,7 @@ body.navigation-open {
 }
 .app-content {
     min-width: 0;
+    max-width: 80rem;
     overflow-wrap: anywhere;
 }
 .app-content > * {
@@ -84,6 +85,160 @@ body.navigation-open {
 }
 .admin-search-card .ant-card-body {
     padding: 14px 16px;
+}
+.teacher-page-stack {
+    display: grid;
+    width: 100%;
+    gap: 20px;
+}
+.teacher-page-header {
+    display: flex;
+    min-width: 0;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}
+.teacher-page-header p {
+    max-width: 70ch;
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.65;
+}
+.teacher-page-actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.teacher-count-badge {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border-radius: 999px;
+    background: #eff6ff;
+    padding: 3px 9px;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
+}
+.teacher-card {
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.teacher-card.ant-card .ant-card-body {
+    padding: 0;
+}
+.teacher-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+.teacher-toolbar-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+}
+.teacher-toolbar-main .ant-input-affix-wrapper,
+.teacher-toolbar-main .ant-select-selector {
+    border-radius: 10px !important;
+}
+.teacher-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.teacher-list-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 72px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #eef2f7;
+    transition: background-color 160ms ease;
+}
+.teacher-list-row:last-child {
+    border-bottom: 0;
+}
+.teacher-list-row:hover {
+    background: #f8fbff;
+}
+.teacher-mark {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: none;
+    place-items: center;
+    border-radius: 11px;
+    background: #edf4ff;
+    color: #185fce;
+    font-size: 13px;
+    font-weight: 700;
+}
+.teacher-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+}
+.teacher-list-copy {
+    min-width: 0;
+}
+.teacher-list-copy b,
+.teacher-list-copy small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.teacher-list-copy b {
+    color: #0b214d;
+    font-size: 13px;
+    font-weight: 700;
+}
+.teacher-list-copy small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.teacher-row-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+.teacher-empty-state {
+    display: grid;
+    min-height: 260px;
+    place-items: center;
+    align-content: center;
+    padding: 32px 20px;
+    text-align: center;
+}
+.teacher-empty-state h3 {
+    margin: 14px 0 0;
+    color: #0b214d;
+    font-size: 14px;
+    font-weight: 700;
+}
+.teacher-empty-state p {
+    max-width: 52ch;
+    margin: 6px auto 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.65;
 }
 .admin-search-toolbar {
     display: flex;
@@ -372,14 +527,19 @@ body.navigation-open {
     box-shadow: none;
 }
 .app-shell-header {
+    width: 100%;
+    min-height: 72px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    color: #172554 !important;
+}
+.app-shell-header-inner {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 12px;
     width: 100%;
-    min-height: 72px;
-    background: rgba(255, 255, 255, 0.96) !important;
-    color: #172554 !important;
+    min-height: inherit;
+    max-width: 80rem;
     box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
 }
 .header-menu-button {
@@ -514,6 +674,39 @@ body.navigation-open {
 }
 
 @media (max-width: 639px) {
+    .teacher-page-stack {
+        gap: 16px;
+    }
+    .teacher-page-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .teacher-page-header h2 {
+        font-size: 18px;
+    }
+    .teacher-page-actions,
+    .teacher-page-actions .ant-btn {
+        width: 100%;
+    }
+    .teacher-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 12px;
+    }
+    .teacher-toolbar-main {
+        width: 100%;
+    }
+    .teacher-list-row {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        padding: 13px 12px;
+    }
+    .teacher-row-actions {
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: flex-end;
+        padding-left: 52px;
+    }
     .admin-search-card .ant-card-body {
         padding: 12px;
     }
@@ -626,13 +819,21 @@ body.navigation-open {
 }
 
 @media (min-width: 1536px) {
-    .app-content {
-        max-width: 1440px;
+    .app-content,
+    .app-shell-header-inner {
+        max-width: 100rem;
+    }
+}
+
+@media (min-width: 2048px) {
+    .app-content,
+    .app-shell-header-inner {
+        max-width: 112rem;
     }
 }
 
 @media (min-width: 1024px) {
-    .app-shell-header {
+    .app-shell-header-inner {
         grid-template-columns: minmax(0, 1fr) auto;
     }
     .header-title {
@@ -666,4 +867,12 @@ body.navigation-open {
         "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
+}
+/* Rows that open a record use the same interaction affordance across modules. */
+.ant-table-tbody > tr.ant-table-row {
+    cursor: pointer;
+}
+
+.ant-table-tbody > tr.ant-table-row:hover > td {
+    background: #f8fbff !important;
 }

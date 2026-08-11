@@ -23,5 +23,12 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .codegraph
-tests/
+# Keep the focused family-management regression suite versionable while other
+# local test work remains ignored by the existing repository policy.
+!tests/
+tests/*
+!tests/Feature/
+tests/Feature/*
+!tests/Feature/AdminFamilyManagementTest.php
+!tests/Feature/QrAttendanceTest.php
 tasks/

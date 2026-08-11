@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { Search, Users } from "lucide-vue-next";
+import AAlert from "ant-design-vue/es/alert";
+import AButton from "ant-design-vue/es/button";
+import ACard from "ant-design-vue/es/card";
+import AInput from "ant-design-vue/es/input";
+import ATag from "ant-design-vue/es/tag";
+import { BookOpen, Search, Users } from "lucide-vue-next";
 import { getClassChildren, getTeacherClasses } from "../api/teacher";
+import TeacherPageHeader from "../components/TeacherPageHeader.vue";
 import type { Child } from "../types/api";
 type Row = Child & { className: string };
 const rows = ref<Row[]>([]),
@@ -38,73 +44,34 @@ async function load() {
 onMounted(load);
 </script>
 <template>
-    <div>
-        <h2 class="text-xl font-bold text-ink">Thiếu nhi</h2>
-        <p class="mt-1 text-sm text-slate-500">
-            Danh sách thiếu nhi thuộc các lớp bạn phụ trách.
-        </p>
-        <div
-            class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white"
-        >
-            <div class="border-b border-slate-100 p-4">
-                <label
-                    class="flex w-full max-w-sm items-center gap-2 rounded-xl bg-slate-50 px-3 py-2"
-                    ><Search class="size-4 text-slate-400" /><input
-                        v-model="query"
-                        class="w-full bg-transparent text-sm outline-none"
-                        placeholder="Tìm theo tên hoặc mã..."
-                /></label>
-            </div>
-            <div v-if="loading" class="p-6 text-sm text-slate-500">
-                Đang tải danh sách…
-            </div>
-            <div v-else-if="error" class="p-8 text-center text-rose-700">
-                {{ error }}
-                <button
-                    class="ml-2 font-semibold text-primary-600"
-                    @click="load"
-                >
-                    Thử lại
-                </button>
-            </div>
-            <div v-else-if="!filtered.length" class="p-10 text-center">
-                <Users class="mx-auto size-9 text-slate-400" />
-                <p class="mt-3 text-slate-500">Không có thiếu nhi phù hợp.</p>
-            </div>
-            <div v-else>
-                <div
-                    v-for="student in filtered"
-                    :key="`${student.id}-${student.className}`"
-                    class="flex items-start gap-3 border-b border-slate-100 p-3 last:border-0 sm:items-center sm:p-4"
-                >
-                    <span
-                        class="grid size-10 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700"
-                        >{{
-                            student.full_name
-                                .split(" ")
-                                .slice(-2)
-                                .map((x) => x[0])
-                                .join("")
-                        }}</span
-                    >
-                    <div class="flex-1">
-                        <p class="font-medium text-ink">
-                            {{ student.full_name }}
-                        </p>
-                        <p class="text-xs text-slate-500">
-                            {{ student.code }} ·
-                            {{
-                                student.saint_name || "Chưa cập nhật tên thánh"
-                            }}
-                            · {{ student.className }}
-                        </p>
-                    </div>
-                    <span
-                        class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs text-emerald-700"
-                        >Đang học</span
-                    >
+    <section class="teacher-page-stack">
+        <TeacherPageHeader title="Thiếu nhi" description="Danh sách thiếu nhi thuộc các lớp bạn đang phụ trách." :count="`${filtered.length} thiếu nhi`" />
+        <ACard :bordered="false" class="teacher-card">
+            <div class="teacher-toolbar">
+                <div class="teacher-toolbar-main">
+                    <AInput v-model:value="query" allow-clear size="large" aria-label="Tìm thiếu nhi" placeholder="Tìm theo tên, mã hoặc tên thánh">
+                        <template #prefix><Search class="size-4 text-slate-400" /></template>
+                    </AInput>
                 </div>
             </div>
-        </div>
-    </div>
+            <div v-if="loading" class="space-y-3 p-5" aria-busy="true" aria-label="Đang tải danh sách thiếu nhi">
+                <div v-for="i in 5" :key="i" class="h-16 animate-pulse rounded-xl bg-slate-100" />
+            </div>
+            <div v-else-if="error" class="p-4">
+                <AAlert type="error" show-icon :message="error"><template #action><AButton size="small" @click="load">Thử lại</AButton></template></AAlert>
+            </div>
+            <div v-else-if="!filtered.length" class="teacher-empty-state">
+                <Users class="size-10 text-slate-400" />
+                <h3>Không có thiếu nhi phù hợp</h3>
+                <p>Thử thay đổi từ khóa hoặc kiểm tra lại phạm vi lớp được phân công.</p>
+            </div>
+            <ul v-else class="teacher-list">
+                <li v-for="student in filtered" :key="`${student.id}-${student.className}`" class="teacher-list-row">
+                    <span class="teacher-mark">{{ student.full_name.split(" ").slice(-2).map((word) => word[0]).join("") }}</span>
+                    <div class="teacher-list-copy"><b>{{ student.full_name }}</b><small>{{ student.code }} · {{ student.saint_name || "Chưa cập nhật tên thánh" }}</small></div>
+                    <div class="teacher-row-actions"><ATag color="blue"><span class="inline-flex items-center gap-1"><BookOpen class="size-3.5" />{{ student.className }}</span></ATag><ATag color="success">Đang học</ATag></div>
+                </li>
+            </ul>
+        </ACard>
+    </section>
 </template>

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import AAlert from "ant-design-vue/es/alert";
+import AButton from "ant-design-vue/es/button";
+import ACard from "ant-design-vue/es/card";
+import AInput from "ant-design-vue/es/input";
+import AModal from "ant-design-vue/es/modal";
+import ASelect from "ant-design-vue/es/select";
 import { Check, Save, Plus, ClipboardCheck } from "lucide-vue-next";
 import {
     createAttendanceSession,
@@ -17,6 +23,7 @@ import type {
     Child,
 } from "../types/api";
 import { toast } from "vue-sonner";
+import TeacherPageHeader from "../components/TeacherPageHeader.vue";
 type Row = Child & { attendanceStatus: AttendanceStatus };
 const route = useRoute(),
     classes = ref<CatechismClass[]>([]),
@@ -32,6 +39,15 @@ const loading = ref(true),
     heldAt = ref(new Date().toISOString().slice(0, 16));
 const selectedClass = computed(() =>
     classes.value.find((x) => x.id === Number(classId.value)),
+);
+const classOptions = computed(() =>
+    classes.value.map((item) => ({ value: item.id, label: `${item.name} · ${item.code}` })),
+);
+const sessionOptions = computed(() =>
+    sessions.value.map((item) => ({
+        value: item.id,
+        label: new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.held_at)),
+    })),
 );
 async function loadClasses() {
     loading.value = true;
@@ -75,7 +91,7 @@ async function selectSession() {
     }));
 }
 async function createSession() {
-    if (!classId.value) return;
+    if (!classId.value || saving.value) return;
     saving.value = true;
     error.value = "";
     try {
@@ -99,7 +115,7 @@ async function createSession() {
     }
 }
 async function save() {
-    if (!sessionId.value) return;
+    if (!sessionId.value || saving.value) return;
     saving.value = true;
     error.value = "";
     success.value = "";
@@ -120,6 +136,7 @@ async function save() {
         saving.value = false;
     }
 }
+function closeCreateSession() { if (!saving.value) showCreate.value = false; }
 function markAll() {
     rows.value = rows.value.map((row) => ({
         ...row,
@@ -130,6 +147,7 @@ watch(classId, () => loadSessions());
 watch(sessionId, () => selectSession());
 onMounted(loadClasses);
 const statuses: Array<{ value: AttendanceStatus; label: string }> = [
+    { value: "unknown", label: "Chưa ghi nhận" },
     { value: "present", label: "Có mặt" },
     { value: "late", label: "Đi trễ" },
     { value: "excused_absence", label: "Nghỉ phép" },
@@ -137,183 +155,44 @@ const statuses: Array<{ value: AttendanceStatus; label: string }> = [
 ];
 </script>
 <template>
-    <div class="space-y-6">
-        <header class="flex flex-wrap items-end justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-bold text-ink">Điểm danh lớp</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    Chọn lớp và phiên để ghi nhận chuyên cần thực tế.
-                </p>
-            </div>
-            <button
-                v-if="classId"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white"
-                @click="showCreate = !showCreate"
-            >
-                <Plus class="size-4" />Mở phiên mới
-            </button>
-        </header>
-        <div
-            v-if="error"
-            role="alert"
-            class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
-        >
-            {{ error }}
-        </div>
-        <div
-            v-if="success"
-            role="status"
-            class="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700"
-        >
-            <Check class="size-4" />{{ success }}
-        </div>
-        <form
-            v-if="showCreate"
-            class="flex flex-wrap items-end gap-3 rounded-2xl border border-primary-100 bg-primary-50 p-4"
-            @submit.prevent="createSession"
-        >
-            <label class="text-sm font-medium text-slate-700"
-                >Ngày giờ<input
-                    v-model="heldAt"
-                    required
-                    type="datetime-local"
-                    class="mt-2 block min-h-11 rounded-xl border border-slate-300 bg-white px-3" /></label
-            ><button
-                :disabled="saving"
-                class="min-h-11 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-            >
-                Tạo phiên</button
-            ><button
-                type="button"
-                class="min-h-11 px-3 text-sm"
-                @click="showCreate = false"
-            >
-                Hủy
-            </button>
-        </form>
-        <section
-            class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2"
-        >
-            <label class="text-sm font-medium text-slate-700"
-                >Lớp<select
-                    v-model="classId"
-                    class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"
-                >
-                    <option value="" disabled>Chọn lớp</option>
-                    <option
-                        v-for="item in classes"
-                        :key="item.id"
-                        :value="item.id"
-                    >
-                        {{ item.name }}
-                    </option>
-                </select></label
-            ><label class="text-sm font-medium text-slate-700"
-                >Phiên điểm danh<select
-                    v-model="sessionId"
-                    class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"
-                >
-                    <option value="">Chọn phiên</option>
-                    <option
-                        v-for="item in sessions"
-                        :key="item.id"
-                        :value="item.id"
-                    >
-                        {{ new Date(item.held_at).toLocaleString("vi-VN") }}
-                    </option>
-                </select></label
-            >
-        </section>
-        <div
-            v-if="loading"
-            class="rounded-2xl bg-white p-8 text-sm text-slate-500"
-        >
-            Đang tải…
-        </div>
-        <div
-            v-else-if="!classes.length"
-            class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"
-        >
-            <ClipboardCheck class="mx-auto size-9 text-slate-400" />
-            <p class="mt-3">Bạn chưa được phân công lớp.</p>
-        </div>
-        <section
-            v-else
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-        >
-            <div
-                class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4"
-            >
-                <div>
-                    <h3 class="font-semibold text-ink">
-                        {{ selectedClass?.name }}
-                    </h3>
-                    <p class="text-xs text-slate-500">
-                        {{ rows.length }} thiếu nhi
-                    </p>
+    <section class="teacher-page-stack">
+        <TeacherPageHeader title="Điểm danh lớp" description="Chọn lớp và phiên để ghi nhận chuyên cần thực tế." :count="`${rows.length} thiếu nhi`">
+            <template #actions><AButton type="primary" size="large" :disabled="!classId || saving" @click="showCreate=true"><template #icon><Plus class="size-4" /></template>Mở phiên mới</AButton></template>
+        </TeacherPageHeader>
+
+        <AAlert v-if="error" type="error" show-icon closable :message="error" @close="error=''" />
+        <AAlert v-if="success" type="success" show-icon closable :message="success" @close="success=''" />
+
+        <ACard :bordered="false" class="teacher-card">
+            <div class="teacher-toolbar attendance-toolbar">
+                <div class="teacher-toolbar-main attendance-filter-grid">
+                    <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Lớp được phân công<ASelect v-model:value="classId" size="large" show-search option-filter-prop="label" placeholder="Chọn lớp" :disabled="saving" :options="classOptions" /></label>
+                    <label class="grid gap-1.5 text-xs font-semibold text-slate-700">Phiên điểm danh<ASelect v-model:value="sessionId" size="large" placeholder="Chọn ngày và giờ" :options="sessionOptions" :disabled="!classId || saving" /></label>
                 </div>
-                <button
-                    type="button"
-                    class="min-h-11 text-sm font-medium text-primary-600"
-                    @click="markAll"
-                >
-                    Đánh dấu tất cả có mặt
-                </button>
+                <AButton :disabled="!rows.length || saving" @click="markAll"><template #icon><Check class="size-4" /></template>Tất cả có mặt</AButton>
             </div>
-            <div class="divide-y divide-slate-100">
-                <article
-                    v-for="student in rows"
-                    :key="student.id"
-                    class="flex flex-wrap items-center gap-3 p-4"
-                >
-                    <span
-                        class="grid size-10 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700"
-                        >{{ student.full_name.slice(-2) }}</span
-                    >
-                    <div class="min-w-40 flex-1">
-                        <p class="font-medium text-ink">
-                            {{ student.full_name }}
-                        </p>
-                        <p class="text-xs text-slate-500">
-                            {{ student.code }} · {{ student.saint_name }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex flex-wrap rounded-lg bg-slate-100 p-1 text-xs"
-                    >
-                        <button
-                            v-for="status in statuses"
-                            :key="status.value"
-                            type="button"
-                            class="min-h-9 rounded-md px-2.5"
-                            :class="
-                                student.attendanceStatus === status.value
-                                    ? 'bg-white text-primary-700 shadow-sm'
-                                    : 'text-slate-500'
-                            "
-                            @click="student.attendanceStatus = status.value"
-                        >
-                            {{ status.label }}
-                        </button>
-                    </div>
-                </article>
-            </div>
-            <footer
-                class="sticky bottom-0 flex justify-stretch border-t border-slate-200 bg-white p-3 sm:justify-end sm:p-4"
-            >
-                <button
-                    :disabled="!sessionId || saving"
-                    class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    :title="
-                        !sessionId ? 'Hãy chọn hoặc tạo phiên điểm danh' : ''
-                    "
-                    @click="save"
-                >
-                    <Save class="size-4" />{{
-                        saving ? "Đang lưu…" : "Lưu điểm danh"
-                    }}
-                </button>
-            </footer>
-        </section>
-    </div>
+
+            <div v-if="loading" class="space-y-3 p-5" aria-busy="true" aria-label="Đang tải dữ liệu điểm danh"><div v-for="i in 5" :key="i" class="h-16 animate-pulse rounded-xl bg-slate-100" /></div>
+            <div v-else-if="!classes.length" class="teacher-empty-state"><ClipboardCheck class="size-10 text-slate-400" /><h3>Chưa có lớp phụ trách</h3><p>Liên hệ quản trị viên để được phân công trước khi điểm danh.</p></div>
+            <div v-else-if="!sessionId" class="teacher-empty-state"><ClipboardCheck class="size-10 text-slate-400" /><h3>Chọn một phiên điểm danh</h3><p>Bạn có thể chọn phiên đã có hoặc mở phiên mới cho lớp {{ selectedClass?.name }}.</p></div>
+            <template v-else>
+                <ul class="teacher-list">
+                    <li v-for="student in rows" :key="student.id" class="teacher-list-row">
+                        <span class="teacher-mark">{{ student.full_name.split(" ").slice(-2).map((word) => word[0]).join("") }}</span>
+                        <div class="teacher-list-copy"><b>{{ student.full_name }}</b><small>{{ student.code }}<template v-if="student.saint_name"> · {{ student.saint_name }}</template></small></div>
+                        <div class="teacher-row-actions"><ASelect v-model:value="student.attendanceStatus" class="attendance-status-select" :disabled="saving" :options="statuses" aria-label="Trạng thái điểm danh" /></div>
+                    </li>
+                </ul>
+                <footer class="flex justify-stretch border-t border-slate-200 bg-slate-50/70 p-3 sm:justify-end sm:p-4"><AButton type="primary" size="large" :disabled="!sessionId" :loading="saving" class="w-full sm:w-auto" @click="save"><template #icon><Save class="size-4" /></template>Lưu điểm danh</AButton></footer>
+            </template>
+        </ACard>
+
+        <AModal :open="showCreate" centered title="Mở phiên điểm danh mới" :confirm-loading="saving" :closable="!saving" :keyboard="!saving" :mask-closable="false" :cancel-button-props="{ disabled: saving }" ok-text="Tạo phiên" cancel-text="Hủy" :ok-button-props="{ disabled: !heldAt }" @cancel="closeCreateSession" @ok="createSession">
+            <label class="grid gap-1.5 pt-2 text-xs font-semibold text-slate-700">Ngày và giờ bắt đầu <span class="text-red-500">*</span><AInput v-model:value="heldAt" type="datetime-local" size="large" :disabled="saving" /></label>
+        </AModal>
+    </section>
 </template>
+
+<style scoped>
+.attendance-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(15rem,1fr));max-width:58rem}.attendance-status-select{width:11.5rem}@media(max-width:767px){.attendance-toolbar{align-items:stretch;flex-direction:column}.attendance-filter-grid{grid-template-columns:1fr;max-width:none}.attendance-toolbar>.ant-btn{width:100%}.attendance-status-select{width:100%}}
+</style>

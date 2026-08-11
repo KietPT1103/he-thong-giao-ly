@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         });
         RateLimiter::for('sensitive', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id.'|'.$request->ip()));
         RateLimiter::for('upload', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('qr-scan', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id.'|'.$request->ip()));
         RateLimiter::for('mfa', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get('auth.mfa_user_id', $request->ip())));
     }
 }

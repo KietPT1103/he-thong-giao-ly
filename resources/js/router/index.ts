@@ -73,9 +73,10 @@ const routes: RouteRecordRaw[] = [
     protectedRoute("/admin/parishes", "Giáo xứ", ["admin"], () => import("../views/AdminParishesView.vue"), "manage-system-settings"),
     protectedRoute("/admin/teachers", "Giáo lý viên", ["admin"], () => import("../views/AdminTeachersView.vue"), "manage-users"),
     protectedRoute("/admin/classes", "Lớp học", ["admin"], () => import("../views/AdminClassesView.vue"), "view-classes"),
+    protectedRoute("/admin/classes/:id/edit", "Chỉnh sửa lớp học", ["admin"], () => import("../views/AdminClassEditView.vue"), "view-classes"),
+    protectedRoute("/admin/parents", "Phụ huynh", ["admin"], () => import("../views/AdminParentsView.vue"), "view-parents"),
+    protectedRoute("/admin/children", "Thiếu nhi", ["admin"], () => import("../views/AdminChildrenView.vue"), "view-children"),
     ...[
-        ["parents", "Phụ huynh"],
-        ["children", "Thiếu nhi"],
         ["announcements", "Thông báo"],
     ].map(([module, title]) => ({
         path: `/admin/${module}`,
@@ -133,8 +134,14 @@ const routes: RouteRecordRaw[] = [
         ["teacher"],
         AssignmentsView,
     ),
+    protectedRoute(
+        "/teacher/qr-scanner",
+        "Điểm danh QR",
+        ["teacher"],
+        () => import("../views/QrScannerView.vue"),
+        "scan-attendance-qr",
+    ),
     ...[
-        ["/qr-scanner", "Điểm danh QR"],
         ["/mass-attendance", "Lịch sử đi lễ"],
         ["/lessons", "Bài học"],
         ["/submissions", "Bài nộp cần chấm"],
@@ -147,8 +154,14 @@ const routes: RouteRecordRaw[] = [
     ),
 
     parent("", "Tổng quan"),
+    protectedRoute(
+        "/parent/children",
+        "Các con của tôi",
+        ["parent"],
+        () => import("../views/ParentChildrenQrView.vue"),
+        "view-child-qr",
+    ),
     ...[
-        ["/children", "Các con của tôi"],
         ["/children/:id", "Hồ sơ thiếu nhi"],
         ["/schedule", "Lịch học"],
         ["/mass-attendance", "Lịch sử tham dự"],
@@ -161,6 +174,13 @@ const routes: RouteRecordRaw[] = [
     ].map(([path, title]) => parent(path, title)),
 
     child("", "Tổng quan"),
+    protectedRoute(
+        "/child/my-qr",
+        "Mã QR của tôi",
+        ["child"],
+        () => import("../views/ChildQrView.vue"),
+        "view-child-qr",
+    ),
     ...[
         ["/schedule", "Lịch học"],
         ["/mass", "Thánh lễ"],
@@ -169,7 +189,6 @@ const routes: RouteRecordRaw[] = [
         ["/points", "Điểm thưởng"],
         ["/badges", "Huy hiệu"],
         ["/notifications", "Thông báo"],
-        ["/my-qr", "Mã QR của tôi"],
         ["/profile", "Cá nhân"],
     ].map(([path, title]) => child(path, title)),
 

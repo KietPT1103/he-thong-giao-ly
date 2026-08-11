@@ -39,14 +39,14 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/teacher/children", label: "Thiếu nhi", icon: Users, permission: "view-children" },
         { to: "/teacher/schedule", label: "Lịch dạy", icon: CalendarDays, permission: "view-classes" },
         { to: "/teacher/attendance", label: "Điểm danh lớp", icon: CheckSquare, permission: "view-attendance" },
-        { to: "/teacher/qr-scanner", label: "Điểm danh QR", icon: QrCode, permission: "view-attendance" },
+        { to: "/teacher/qr-scanner", label: "Điểm danh QR", icon: QrCode, permission: "scan-attendance-qr" },
         { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen, permission: "view-classes" },
         { to: "/teacher/submissions", label: "Bài cần chấm", icon: ClipboardList, permission: "view-classes" },
         { to: "/teacher/announcements", label: "Thông báo lớp", icon: Bell, permission: "view-notifications" },
     ],
     parent: [
         { to: "/parent", label: "Tổng quan", icon: Home },
-        { to: "/parent/children", label: "Các con của tôi", icon: Users },
+        { to: "/parent/children", label: "Các con của tôi", icon: Users, permission: "view-child-qr" },
         { to: "/parent/schedule", label: "Lịch học", icon: CalendarDays },
         { to: "/parent/mass-attendance", label: "Lịch sử tham dự", icon: Church },
         { to: "/parent/assignments", label: "Bài tập", icon: BookOpen },
@@ -59,7 +59,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/child/mass", label: "Thánh lễ", icon: Church },
         { to: "/child/assignments", label: "Bài tập", icon: BookOpen },
         { to: "/child/points", label: "Điểm thưởng", icon: Gift },
-        { to: "/child/my-qr", label: "Mã QR", icon: QrCode },
+        { to: "/child/my-qr", label: "Mã QR", icon: QrCode, permission: "view-child-qr" },
     ],
 };
 const navigation = computed(() => (navigationByRole[role.value] ?? []).filter((item) => !item.permission || auth.hasPermission(item.permission)));
@@ -72,7 +72,9 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
     <button v-if="open" class="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-[2px] lg:hidden" aria-label="Đóng menu điều hướng" @click="emit('close')" />
     <aside id="app-sidebar" :class="open ? 'translate-x-0' : '-translate-x-full'" class="sidebar fixed inset-y-0 left-0 z-40 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white transition-transform duration-300 sm:px-4 lg:w-70 lg:translate-x-0 lg:py-5">
         <div class="sidebar-brand flex min-h-13 items-center gap-3 px-1">
-            <div class="sidebar-brand-mark grid size-11 shrink-0 place-items-center rounded-xl"><BookOpen class="size-5" /></div>
+            <div class="sidebar-brand-mark size-11 shrink-0 overflow-hidden rounded-xl">
+                <img :src="'/favicon-htgl.png'" alt="" width="44" height="44" aria-hidden="true" />
+            </div>
             <div class="sidebar-brand-copy min-w-0 flex-1"><p class="truncate text-sm font-bold">Hành Trang Đức Tin</p><p class="truncate text-xs">Giáo phận Cần Thơ</p></div>
         </div>
         <nav class="sidebar-nav min-h-0 flex-1 space-y-1 overflow-y-auto py-3" aria-label="Điều hướng chính">
@@ -103,14 +105,15 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
 <style scoped>
 .sidebar{border-right:1px solid rgba(250,249,245,.08);background:#081a3e;box-shadow:2px 0 2px rgba(15,23,42,.01);transition-timing-function:cubic-bezier(.16,1,.3,1)}
 .sidebar-brand{height:3.5rem;margin-bottom:.35rem}
-.sidebar-brand-mark{align-self:center;border:1px solid rgba(250,249,245,.72);background:#f0eee6;color:#0b214d}
+.sidebar-brand-mark{align-self:center;border:0;background:transparent;box-shadow:none}
+.sidebar-brand-mark img{display:block;width:100%;height:100%;object-fit:cover}
 .sidebar-brand-copy{display:flex;height:2.75rem;flex-direction:column;justify-content:center;gap:.2rem}
 .sidebar-brand-copy p{margin:0;line-height:1.2}
 .sidebar-brand-copy p:first-child{color:#faf9f5;letter-spacing:-.015em}
 .sidebar-brand-copy p:last-child{color:#aebed8}
 .sidebar-nav{overflow-x:hidden;overscroll-behavior:contain;scrollbar-color:rgba(250,249,245,.18) transparent;scrollbar-width:thin}
-.sidebar-link{max-width:100%;border:1px solid transparent;border-radius:.625rem;color:#cbd8ed;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
-.sidebar-link:hover{border-color:rgba(250,249,245,.08);background:rgba(250,249,245,.065);color:#faf9f5;transform:translateX(2px)}
+.sidebar-link{max-width:100%;border:1px solid transparent;border-radius:.625rem;color:#cbd8ed;transition:background-color .18s ease,color .18s ease}
+.sidebar-link:hover{background:rgba(250,249,245,.04);color:#faf9f5}
 .sidebar-link :deep(svg){color:#9fb4d4;transition:color .18s ease,transform .18s ease}
 .sidebar-link:hover :deep(svg){color:#faf9f5;transform:scale(1.04)}
 .sidebar-active{border-color:#faf9f5;background:#f0eee6;color:#0b214d;box-shadow:0 2px 2px rgba(0,0,0,.01)}
@@ -127,5 +130,5 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
 .profile-menu-enter-active,.profile-menu-leave-active{transition:opacity .18s ease,transform .26s cubic-bezier(.16,1,.3,1)}
 .profile-menu-enter-from,.profile-menu-leave-to{opacity:0;transform:translateY(.5rem) scale(.97)}
 .profile-menu-enter-to,.profile-menu-leave-from{opacity:1;transform:translateY(0) scale(1)}
-@media(prefers-reduced-motion:reduce){.sidebar,.sidebar-link,.sidebar-link :deep(svg),.profile-menu-enter-active,.profile-menu-leave-active{transition:none}.sidebar-link:hover,.sidebar-link:hover :deep(svg),.profile-menu-enter-from,.profile-menu-leave-to{transform:none}}
+@media(prefers-reduced-motion:reduce){.sidebar,.sidebar-link,.sidebar-link :deep(svg),.profile-menu-enter-active,.profile-menu-leave-active{transition:none}.sidebar-link:hover :deep(svg),.profile-menu-enter-from,.profile-menu-leave-to{transform:none}}
 </style>

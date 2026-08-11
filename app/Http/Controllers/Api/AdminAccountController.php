@@ -76,6 +76,13 @@ class AdminAccountController extends ApiController
                 'code' => 'TEACHER_CREATION_REQUIRES_PROFILE',
             ], 422);
         }
+        if ($data['role'] === 'admin' && User::role('admin')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hệ thống hiện chỉ sử dụng một tài khoản quản trị viên.',
+                'code' => 'SINGLE_ADMIN_ACCOUNT',
+            ], 422);
+        }
         $user = DB::transaction(function () use ($data) {
             $user = User::create(collect($data)->only(['name', 'email', 'phone', 'password'])->all());
             $user->assignRole($data['role']);
@@ -139,6 +146,20 @@ class AdminAccountController extends ApiController
         ]);
         if ($user->is($request->user()) && $data['role'] !== 'admin') {
             return $this->unsafeSelfChange();
+        }
+        if ($data['role'] === 'admin' && ! $user->hasRole('admin') && User::role('admin')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hệ thống hiện chỉ sử dụng một tài khoản quản trị viên.',
+                'code' => 'SINGLE_ADMIN_ACCOUNT',
+            ], 422);
+        }
+        if ($data['role'] === 'admin' && $data['denied_permissions'] !== []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vai trò quản trị viên luôn có toàn quyền và không thể chặn quyền riêng lẻ.',
+                'code' => 'ADMIN_FULL_ACCESS_REQUIRED',
+            ], 422);
         }
         if ($data['role'] === 'teacher' && ! $user->teacherProfile()->exists()) {
             return response()->json([

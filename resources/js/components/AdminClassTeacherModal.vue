@@ -26,22 +26,27 @@ watch(() => props.open, (open) => {
     selected.value = Object.fromEntries((props.model?.teachers ?? []).map(item => [item.id,item.role]));
 });
 function toggle(id:number, checked:boolean) {
+    if (props.saving) return;
     const next = {...selected.value};
     if (checked) next[id] = "assistant"; else delete next[id];
     selected.value = next;
 }
+function submit() {
+    if (props.saving) return;
+    emit("submit", Object.entries(selected.value).map(([teacher_id,role]) => ({teacher_id:Number(teacher_id),role})));
+}
 </script>
 
 <template>
-    <AModal :open="open" title="Phân công giáo lý viên" width="700px" centered :mask-closable="false" :closable="!saving" :confirm-loading="saving" ok-text="Lưu phân công" cancel-text="Hủy" @cancel="emit('close')" @ok="emit('submit', Object.entries(selected).map(([teacher_id,role]) => ({teacher_id:Number(teacher_id),role})))">
+    <AModal :open="open" title="Phân công giáo lý viên" width="700px" centered :mask-closable="false" :closable="!saving" :keyboard="!saving" :confirm-loading="saving" :cancel-button-props="{ disabled: saving }" ok-text="Lưu phân công" cancel-text="Hủy" @cancel="emit('close')" @ok="submit">
         <p class="picker-context">{{ model?.name }} · {{ Object.keys(selected).length }} người được chọn</p>
-        <AInputSearch v-model:value="search" allow-clear size="large" placeholder="Tìm theo tên, email hoặc mã" @search="emit('search', search.trim())" />
+        <AInputSearch v-model:value="search" allow-clear size="large" :disabled="saving" placeholder="Tìm theo tên, email hoặc mã" @search="emit('search', search.trim())" />
         <div v-if="filtered.length" class="person-picker" role="list">
             <div v-for="teacher in filtered" :key="teacher.id" class="person-row">
                 <ACheckbox :checked="Boolean(selected[teacher.id])" :disabled="saving" :aria-label="`Chọn ${teacher.name}`" @change="toggle(teacher.id, $event.target.checked)" />
                 <span class="person-avatar">{{ teacher.name?.slice(0,1).toUpperCase() }}</span>
                 <span class="person-copy"><b>{{ teacher.name }}</b><small>{{ teacher.email }} · {{ teacher.code }}</small></span>
-                <ASelect v-if="selected[teacher.id]" v-model:value="selected[teacher.id]" class="role-select" :options="[{value:'primary',label:'Phụ trách chính'},{value:'assistant',label:'Phụ tá'}]" />
+                <ASelect v-if="selected[teacher.id]" v-model:value="selected[teacher.id]" class="role-select" :disabled="saving" :options="[{value:'primary',label:'Phụ trách chính'},{value:'assistant',label:'Phụ tá'}]" />
                 <span v-else class="person-unselected">Chưa chọn</span>
             </div>
         </div>

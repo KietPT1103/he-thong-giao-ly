@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'denied_permissions' => $this->deniedPermissions()->pluck('name')->values(),
             'must_change_password' => $this->must_change_password,
             'mfa_enabled' => $this->mfa_confirmed_at !== null,
+            'child_profile_id' => $this->hasRole('child') ? $this->child?->id : null,
             'last_login_at' => $this->last_login_at,
             'deleted_at' => $this->deleted_at,
         ];

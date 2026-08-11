@@ -173,6 +173,72 @@ export const archiveTeacher = (id:number) =>
 export const restoreTeacher = (id:number) =>
     client.post<ApiResponse<Teacher>>(`/admin/teachers/${id}/restore`);
 
+export interface FamilyParish { id:number;name:string;code:string }
+export interface ParentChildSummary { id:number;full_name:string;code:string;saint_name:string|null }
+export interface AdminParent {
+    id:number;
+    user_id:number;
+    name:string;
+    email:string;
+    phone:string|null;
+    parish_id:number;
+    parish:FamilyParish;
+    account_status:"active"|"blocked"|"archived";
+    is_archived:boolean;
+    children_count:number;
+    children?:ParentChildSummary[];
+    created_at:string;
+}
+export interface ParentListParams { search?:string;parish_id?:number;status?:"active"|"blocked"|"archived";page?:number;per_page?:number }
+export interface ParentCreateInput { name:string;email:string;phone:string|null;parish_id:number;password:string;password_confirmation:string;child_ids:number[] }
+export interface ParentUpdateInput { name:string;email:string;phone:string|null;parish_id:number;child_ids?:number[] }
+export interface ParentOptions { parishes:FamilyParish[];children:Array<{id:number;parish_id:number;full_name:string;code:string}> }
+
+export interface ParentSummary { id:number;name:string;email:string;phone:string|null }
+export interface ChildClassSummary { id:number;name:string;code:string;academic_year:string|null }
+export interface AdminChild {
+    id:number;
+    user_id:number|null;
+    email:string|null;
+    code:string;
+    full_name:string;
+    saint_name:string|null;
+    date_of_birth:string|null;
+    status:"studying"|"paused"|"graduated";
+    is_archived:boolean;
+    parish_id:number;
+    parish:FamilyParish;
+    parents_count:number;
+    parents?:ParentSummary[];
+    current_class:ChildClassSummary|null;
+    created_at:string;
+}
+export interface ChildListParams { search?:string;parish_id?:number;status?:"studying"|"paused"|"graduated"|"archived";page?:number;per_page?:number }
+export interface ChildCreateInput { full_name:string;code:string;saint_name:string|null;date_of_birth:string|null;parish_id:number;status:"studying"|"paused"|"graduated";parent_ids:number[];class_id:number|null }
+export interface ChildUpdateInput { full_name:string;code:string;saint_name:string|null;date_of_birth:string|null;parish_id:number;status:"studying"|"paused"|"graduated";parent_ids?:number[];class_id?:number|null }
+export type ChildInput = ChildCreateInput | ChildUpdateInput;
+export interface ChildOptions {
+    parishes:FamilyParish[];
+    parents:Array<{id:number;parish_id:number;name:string;email:string}>;
+    classes:Array<{id:number;parish_id:number;name:string;code:string;academic_year:string}>;
+}
+
+export const listParents = (params:ParentListParams) => client.get<ApiResponse<AdminParent[]>>('/admin/parents', {params});
+export const getParent = (id:number) => client.get<ApiResponse<AdminParent>>(`/admin/parents/${id}`);
+export const getParentOptions = () => client.get<ApiResponse<ParentOptions>>('/admin/parents/options');
+export const createParent = (data:ParentCreateInput) => client.post<ApiResponse<AdminParent>>('/admin/parents', data);
+export const updateParent = (id:number, data:ParentUpdateInput) => client.patch<ApiResponse<AdminParent>>(`/admin/parents/${id}`, data);
+export const archiveParent = (id:number) => client.delete<ApiResponse<null>>(`/admin/parents/${id}`);
+export const restoreParent = (id:number) => client.post<ApiResponse<AdminParent>>(`/admin/parents/${id}/restore`);
+
+export const listChildren = (params:ChildListParams) => client.get<ApiResponse<AdminChild[]>>('/admin/children', {params});
+export const getChild = (id:number) => client.get<ApiResponse<AdminChild>>(`/admin/children/${id}`);
+export const getChildOptions = () => client.get<ApiResponse<ChildOptions>>('/admin/children/options');
+export const createChild = (data:ChildCreateInput) => client.post<ApiResponse<AdminChild>>('/admin/children', data);
+export const updateChild = (id:number, data:ChildUpdateInput) => client.patch<ApiResponse<AdminChild>>(`/admin/children/${id}`, data);
+export const archiveChild = (id:number) => client.delete<ApiResponse<null>>(`/admin/children/${id}`);
+export const restoreChild = (id:number) => client.post<ApiResponse<AdminChild>>(`/admin/children/${id}/restore`);
+
 export interface ClassScheduleInput {
     weekday:number;
     starts_at:string;
@@ -242,7 +308,7 @@ export interface BusinessApiError {
 export const listClasses = (params:ClassListParams) =>
     client.get<ApiResponse<AdminClass[]>>('/admin/classes', {params});
 export const getClass = (id:number, includeArchived = false) =>
-    client.get<ApiResponse<AdminClass>>(`/admin/classes/${id}`, {params:{include_archived:includeArchived || undefined}});
+    client.get<ApiResponse<AdminClass>>(`/admin/classes/${id}`, {params:{include_archived:includeArchived ? 1 : undefined}});
 export const getClassOptions = (parishId?:number, search?:string) =>
     client.get<ApiResponse<ClassOptions>>('/admin/classes/options', {params:{parish_id:parishId, search:search || undefined}});
 export const createClass = (data:ClassInput) => client.post<ApiResponse<AdminClass>>('/admin/classes', data);

@@ -118,6 +118,7 @@ function validationErrors(error: unknown) {
 }
 
 async function saveParish(payload: ParishInput) {
+    if (saving.value) return;
     saving.value = true;
     formErrors.value = {};
     try {
@@ -145,7 +146,7 @@ function requestAssignment(teacherIds:number[]) {
 }
 
 async function confirmAssignment() {
-    if (!selected.value || pendingTeacherIds.value.length === 0) return;
+    if (!selected.value || pendingTeacherIds.value.length === 0 || assignmentSaving.value) return;
     assignmentSaving.value = true;
     assignmentError.value = "";
     try {
@@ -184,7 +185,7 @@ function requestDelete() {
 }
 
 async function confirmDelete() {
-    if (!selected.value) return;
+    if (!selected.value || deleteSaving.value) return;
     deleteSaving.value = true;
     deleteError.value = "";
     try {

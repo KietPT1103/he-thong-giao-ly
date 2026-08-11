@@ -1,1 +1,57 @@
-<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\SoftDeletes; class Child extends Model { use SoftDeletes; protected $fillable=['parish_id','user_id','code','full_name','saint_name','date_of_birth','status']; protected function casts():array{return ['date_of_birth'=>'date'];} public function user(){return $this->belongsTo(User::class);} public function parish(){return $this->belongsTo(Parish::class);} public function parents(){return $this->belongsToMany(ParentProfile::class,'parent_child');} public function enrollments(){return $this->hasMany(Enrollment::class);} public function attendances(){return $this->hasMany(Attendance::class);} public function leaveRequests(){return $this->hasMany(LeaveRequest::class);} }
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Child extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = ['parish_id', 'user_id', 'code', 'full_name', 'saint_name', 'date_of_birth', 'status', 'qr_version'];
+
+    protected function casts(): array
+    {
+        return ['date_of_birth' => 'date', 'qr_version' => 'integer'];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class)->withTrashed();
+    }
+
+    public function parish()
+    {
+        return $this->belongsTo(Parish::class);
+    }
+
+    public function parents()
+    {
+        return $this->belongsToMany(ParentProfile::class, 'parent_child')
+            ->withPivot('relationship')
+            ->withTimestamps();
+    }
+
+    public function enrollments()
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function activeEnrollment()
+    {
+        return $this->hasOne(Enrollment::class)
+            ->where('status', Enrollment::STATUS_ACTIVE)
+            ->latestOfMany();
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function leaveRequests()
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+}

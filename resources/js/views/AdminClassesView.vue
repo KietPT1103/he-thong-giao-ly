@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import AAlert from "ant-design-vue/es/alert";
 import AButton from "ant-design-vue/es/button";
 import ACard from "ant-design-vue/es/card";
@@ -14,7 +15,7 @@ import ATable from "ant-design-vue/es/table";
 import ATag from "ant-design-vue/es/tag";
 import ATooltip from "ant-design-vue/es/tooltip";
 import type { ColumnsType } from "ant-design-vue/es/table/interface";
-import { Archive, BookOpen, CalendarDays, Eye, GraduationCap, Pencil, Plus, RefreshCw, RotateCcw, Search, UserRoundCheck, UsersRound } from "lucide-vue-next";
+import { Archive, BookOpen, CalendarDays, GraduationCap, Pencil, Plus, RefreshCw, RotateCcw, Search, UserRoundCheck, UsersRound } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import {
     archiveClass, assignClassTeachers, createClass, getClass, getClassOptions, listClasses, restoreClass,
@@ -28,6 +29,7 @@ import AdminClassScheduleModal from "../components/AdminClassScheduleModal.vue";
 import AdminClassTeacherModal from "../components/AdminClassTeacherModal.vue";
 
 const emptyOptions = ():ClassOptions => ({parishes:[],academic_years:[],levels:[],classrooms:[],teachers:[],children:[]});
+const router = useRouter();
 const classes = ref<AdminClass[]>([]);
 const selected = ref<AdminClass|null>(null);
 const options = ref<ClassOptions>(emptyOptions());
@@ -84,21 +86,32 @@ function selectParish(value:unknown) {
     void changeParish(value === undefined ? undefined : Number(value));
 }
 
-async function openDetails(item:AdminClass) {
-    selected.value = item; detailLoading.value = true; detailError.value = "";
-    try {
-        selected.value = (await getClass(item.id,item.is_archived)).data.data;
-        await loadOptions(selected.value.parish?.id);
-    } catch (error) { detailError.value = apiMessage(error,"Không thể tải chi tiết lớp học."); }
-    finally { detailLoading.value = false; }
+function openEditPage(item:AdminClass) {
+    void router.push(`/admin/classes/${item.id}/edit`);
 }
 
 async function openCreate() { editing.value = null; formErrors.value = {}; await loadOptions(); formOpen.value = true; }
 async function openEdit() { if (!selected.value) return; editing.value = selected.value; formErrors.value = {}; await loadOptions(selected.value.parish?.id); formOpen.value = true; }
 function closeForm() { formOpen.value = false; editing.value = null; formErrors.value = {}; }
+function requestFormClose(dirty:boolean) {
+    if (saving.value) return;
+    if (!dirty) { closeForm(); return; }
+    AModal.confirm({
+        title:"Bỏ thay đổi chưa lưu?",
+        content:"Thông tin vừa nhập sẽ không được lưu.",
+        okText:"Bỏ thay đổi",
+        okType:"danger",
+        cancelText:"Tiếp tục chỉnh sửa",
+        onOk:closeForm,
+    });
+}
+function closeTeacherModal() { if (!saving.value) teacherOpen.value = false; }
+function closeEnrollmentModal() { if (!saving.value) enrollmentOpen.value = false; }
+function closeScheduleModal() { if (!saving.value) scheduleOpen.value = false; }
 function validationErrors(error:unknown) { return Object.fromEntries(Object.entries(apiData(error)?.errors ?? {}).map(([key,value]) => [key,value[0]])); }
 
 async function saveClass(payload:ClassInput) {
+    if (saving.value) return;
     saving.value = true; formErrors.value = {};
     try {
         const wasEditing = Boolean(editing.value);
@@ -111,7 +124,7 @@ async function saveClass(payload:ClassInput) {
 }
 
 async function saveTeachers(rows:Array<{teacher_id:number;role:"primary"|"assistant"}>, allow = false) {
-    if (!selected.value) return; saving.value = true;
+    if (!selected.value || saving.value) return; saving.value = true;
     try {
         selected.value = (await assignClassTeachers(selected.value.id,rows,allow)).data.data;
         teacherOpen.value = false; toast.success("Đã cập nhật giáo lý viên phụ trách."); await load(meta.value.current_page);
@@ -124,14 +137,14 @@ async function saveTeachers(rows:Array<{teacher_id:number;role:"primary"|"assist
 }
 
 async function saveEnrollments(rows:Array<{child_id:number;status:"active"|"inactive"}>) {
-    if (!selected.value) return; saving.value = true;
+    if (!selected.value || saving.value) return; saving.value = true;
     try { selected.value = (await updateClassEnrollments(selected.value.id,rows)).data.data; enrollmentOpen.value = false; toast.success("Đã cập nhật ghi danh."); await load(meta.value.current_page); }
     catch (error) { toast.error(apiMessage(error,"Không thể cập nhật ghi danh.")); }
     finally { saving.value = false; }
 }
 
 async function saveSchedules(rows:ClassScheduleInput[], allow = false) {
-    if (!selected.value) return; saving.value = true;
+    if (!selected.value || saving.value) return; saving.value = true;
     try { selected.value = (await updateClassSchedules(selected.value.id,rows,allow)).data.data; scheduleOpen.value = false; toast.success("Đã cập nhật lịch học."); await load(meta.value.current_page); }
     catch (error) {
         const data = apiData(error);
@@ -142,7 +155,7 @@ async function saveSchedules(rows:ClassScheduleInput[], allow = false) {
 }
 
 async function confirmAction() {
-    if (!selected.value || !action.value) return; saving.value = true; actionError.value = "";
+    if (!selected.value || !action.value || saving.value) return; saving.value = true; actionError.value = "";
     try {
         if (action.value === "archive") { await archiveClass(selected.value.id); selected.value = null; toast.success("Đã lưu trữ lớp học."); }
         else { selected.value = (await restoreClass(selected.value.id)).data.data; toast.success("Đã khôi phục lớp học."); }
@@ -151,7 +164,7 @@ async function confirmAction() {
     finally { saving.value = false; }
 }
 
-function rowInteractions(item:AdminClass) { return {class:"class-row",tabindex:0,"aria-label":`Xem lớp ${item.name}`,onClick:() => openDetails(item),onKeydown:(event:KeyboardEvent) => {if (["Enter"," "].includes(event.key)){event.preventDefault();void openDetails(item);}}}; }
+function rowInteractions(item:AdminClass) { return {class:"class-row",tabindex:0,"aria-label":`Chỉnh sửa lớp ${item.name}`,onClick:() => openEditPage(item),onKeydown:(event:KeyboardEvent) => {if (["Enter"," "].includes(event.key)){event.preventDefault();openEditPage(item);}}}; }
 onMounted(async () => { await Promise.all([load(),loadOptions()]); });
 </script>
 
@@ -177,28 +190,17 @@ onMounted(async () => { await Promise.all([load(),loadOptions()]); });
                     <template v-else-if="column.key === 'people'"><div class="metric-lines"><span><UsersRound />{{ record.enrollments_count }} thiếu nhi</span><span><GraduationCap />{{ record.teachers_count }} GLV</span></div></template>
                     <template v-else-if="column.key === 'schedule'"><span v-if="record.schedules?.length" class="schedule-preview"><CalendarDays />{{ weekday[record.schedules[0].weekday] }}, {{ record.schedules[0].starts_at }}–{{ record.schedules[0].ends_at }}</span><span v-else class="muted-label">Chưa có lịch</span></template>
                     <template v-else-if="column.key === 'status'"><ATag :color="record.is_archived ? 'default' : record.status === 'active' ? 'success' : 'warning'">{{ record.is_archived ? 'Đã lưu trữ' : record.status === 'active' ? 'Đang hoạt động' : 'Tạm ngưng' }}</ATag></template>
-                    <template v-else-if="column.key === 'action'"><ATooltip title="Xem chi tiết"><AButton type="text" class="icon-action-button" aria-label="Xem chi tiết lớp" @click.stop="openDetails(record as AdminClass)"><template #icon><Eye class="size-4" /></template></AButton></ATooltip></template>
+                    <template v-else-if="column.key === 'action'"><ATooltip title="Chỉnh sửa"><AButton type="text" class="icon-action-button" aria-label="Chỉnh sửa lớp" @click.stop="openEditPage(record as AdminClass)"><template #icon><Pencil class="size-4" /></template></AButton></ATooltip></template>
                 </template>
             </ATable>
             <div v-if="meta.total > meta.per_page" class="class-pagination"><APagination :current="meta.current_page" :page-size="meta.per_page" :total="meta.total" :show-size-changer="false" responsive @change="load" /></div>
         </ACard>
     </section>
 
-    <ADrawer :open="Boolean(selected)" width="min(700px, 100vw)" title="Chi tiết lớp học" @close="selected = null">
-        <template #extra><div v-if="selected" class="drawer-actions"><AButton v-if="selected.is_archived" @click="action='restore'"><template #icon><RotateCcw class="size-4" /></template>Khôi phục</AButton><template v-else><ATooltip title="Lưu trữ lớp"><AButton danger aria-label="Lưu trữ lớp" @click="action='archive'"><template #icon><Archive class="size-4" /></template></AButton></ATooltip><AButton @click="openEdit"><template #icon><Pencil class="size-4" /></template>Chỉnh sửa</AButton></template></div></template>
-        <ASpin :spinning="detailLoading"><AAlert v-if="detailError" type="error" show-icon :message="detailError" class="mb-4" /><template v-if="selected">
-            <div class="class-detail-head"><span><BookOpen /></span><div><h2>{{ selected.name }}</h2><p>{{ selected.code }} · {{ selected.parish?.name }}</p></div><ATag :color="selected.is_archived ? 'default' : selected.status === 'active' ? 'success' : 'warning'">{{ selected.is_archived ? 'Đã lưu trữ' : selected.status === 'active' ? 'Đang hoạt động' : 'Tạm ngưng' }}</ATag></div>
-            <div class="detail-facts"><div><small>Niên khóa</small><b>{{ selected.academic_year?.name }}</b></div><div><small>Khối</small><b>{{ selected.level?.name }}</b></div><div><small>Phòng</small><b>{{ selected.classroom?.name || 'Chưa xếp' }}</b></div><div><small>Điểm danh</small><b>{{ selected.attendance_sessions_count }} buổi</b></div></div>
-            <div class="detail-section"><div class="section-title"><div><h3>Giáo lý viên</h3><span>{{ selected.teachers_count }} người</span></div><AButton size="small" :disabled="selected.is_archived" @click="teacherOpen=true"><template #icon><UserRoundCheck class="size-4" /></template>Phân công</AButton></div><div v-if="selected.teachers?.length" class="detail-list"><div v-for="teacher in selected.teachers" :key="teacher.id"><span class="list-mark">{{ teacher.name.slice(0,1) }}</span><span><b>{{ teacher.name }}</b><small>{{ teacher.email }}</small></span><ATag>{{ teacher.role === 'primary' ? 'Phụ trách chính' : 'Phụ tá' }}</ATag></div></div><AEmpty v-else description="Chưa phân công giáo lý viên." /></div>
-            <div class="detail-section"><div class="section-title"><div><h3>Thiếu nhi</h3><span>{{ selected.enrollments_count }} đang học</span></div><AButton size="small" :disabled="selected.is_archived" @click="enrollmentOpen=true"><template #icon><UsersRound class="size-4" /></template>Ghi danh</AButton></div><div v-if="selected.enrollments?.length" class="detail-list"><div v-for="enrollment in selected.enrollments" :key="enrollment.id"><span class="list-mark list-mark--neutral">{{ enrollment.child.full_name.slice(0,1) }}</span><span><b>{{ enrollment.child.full_name }}</b><small>{{ enrollment.child.code }}</small></span><ATag :color="enrollment.status === 'active' ? 'success' : 'default'">{{ enrollment.status === 'active' ? 'Đang học' : 'Đã rút' }}</ATag></div></div><AEmpty v-else description="Chưa có thiếu nhi trong lớp." /></div>
-            <div class="detail-section"><div class="section-title"><div><h3>Lịch học</h3><span>{{ selected.schedules.length }} lịch</span></div><AButton size="small" :disabled="selected.is_archived" @click="scheduleOpen=true"><template #icon><CalendarDays class="size-4" /></template>Thiết lập</AButton></div><div v-if="selected.schedules.length" class="schedule-list"><div v-for="schedule in selected.schedules" :key="schedule.id"><CalendarDays /><span><b>{{ weekday[schedule.weekday] }}</b><small>{{ schedule.starts_at }}–{{ schedule.ends_at }}<template v-if="schedule.starts_on || schedule.ends_on"> · {{ schedule.starts_on || 'Đầu niên khóa' }} đến {{ schedule.ends_on || 'Cuối niên khóa' }}</template></small></span></div></div><AEmpty v-else description="Chưa thiết lập lịch học." /></div>
-        </template></ASpin>
-    </ADrawer>
-
-    <AdminClassFormModal :open="formOpen" :model="editing" :options="options" :saving="saving" :errors="formErrors" @parish-change="loadOptions" @close="dirty => dirty ? AModal.confirm({title:'Bỏ thay đổi chưa lưu?',content:'Thông tin vừa nhập sẽ không được lưu.',okText:'Bỏ thay đổi',okType:'danger',cancelText:'Tiếp tục chỉnh sửa',onOk:closeForm}) : closeForm()" @submit="saveClass" />
-    <AdminClassTeacherModal :open="teacherOpen" :model="selected" :teachers="options.teachers" :saving="saving" @close="teacherOpen=false" @search="query => loadOptions(selected?.parish?.id, query)" @submit="saveTeachers" />
-    <AdminClassEnrollmentModal :open="enrollmentOpen" :model="selected" :children="options.children" :saving="saving" @close="enrollmentOpen=false" @search="query => loadOptions(selected?.parish?.id, query)" @submit="saveEnrollments" />
-    <AdminClassScheduleModal :open="scheduleOpen" :model="selected" :saving="saving" @close="scheduleOpen=false" @submit="saveSchedules" />
+    <AdminClassFormModal :open="formOpen" :model="editing" :options="options" :saving="saving" :errors="formErrors" @parish-change="loadOptions" @close="requestFormClose" @submit="saveClass" />
+    <AdminClassTeacherModal :open="teacherOpen" :model="selected" :teachers="options.teachers" :saving="saving" @close="closeTeacherModal" @search="query => loadOptions(selected?.parish?.id, query)" @submit="saveTeachers" />
+    <AdminClassEnrollmentModal :open="enrollmentOpen" :model="selected" :children="options.children" :saving="saving" @close="closeEnrollmentModal" @search="query => loadOptions(selected?.parish?.id, query)" @submit="saveEnrollments" />
+    <AdminClassScheduleModal :open="scheduleOpen" :model="selected" :saving="saving" @close="closeScheduleModal" @submit="saveSchedules" />
     <AdminActionConfirmModal :open="action === 'archive'" title="Lưu trữ lớp học này?" description="Lớp sẽ ẩn khỏi danh sách đang sử dụng; toàn bộ phân công, ghi danh, lịch và điểm danh vẫn được giữ nguyên." confirm-text="Lưu trữ lớp" :target-name="selected?.name" danger :loading="saving" :error-message="actionError" @close="action=null" @confirm="confirmAction" />
     <AdminActionConfirmModal :open="action === 'restore'" title="Khôi phục lớp học này?" description="Lớp sẽ trở lại đúng trạng thái trước khi lưu trữ cùng toàn bộ dữ liệu liên quan." confirm-text="Khôi phục lớp" :target-name="selected?.name" :loading="saving" :error-message="actionError" @close="action=null" @confirm="confirmAction" />
 </template>

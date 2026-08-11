@@ -1,36 +1,19 @@
 <script setup lang="ts">
 import { BookOpen, LockKeyhole } from "lucide-vue-next";
+import AButton from "ant-design-vue/es/button";
+import ACard from "ant-design-vue/es/card";
+import TeacherPageHeader from "../components/TeacherPageHeader.vue";
 </script>
 <template>
-    <div>
-        <header>
-            <h2 class="text-xl font-bold text-ink">Bài tập</h2>
-            <p class="mt-1 text-sm text-slate-500">
-                Giao bài, theo dõi bài nộp và chấm điểm.
-            </p>
-        </header>
-        <section
-            class="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"
-        >
-            <span
-                class="mx-auto grid size-14 place-items-center rounded-2xl bg-primary-50 text-primary-600"
-                ><BookOpen class="size-7"
-            /></span>
-            <h3 class="mt-4 font-semibold text-ink">
-                Module bài tập chưa được mở
-            </h3>
-            <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                Backend bài tập, bài nộp và policy theo phạm vi lớp sẽ được xây
-                dựng ở Phase 4. Nút giao bài được khóa để không tạo thao tác
-                giả.
-            </p>
-            <button
-                disabled
-                title="Đang phát triển"
-                class="mt-5 inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-xl bg-slate-200 px-4 text-sm font-semibold text-slate-500"
-            >
-                <LockKeyhole class="size-4" />Giao bài tập · Đang phát triển
-            </button>
-        </section>
-    </div>
+    <section class="teacher-page-stack">
+        <TeacherPageHeader title="Bài tập" description="Giao bài, theo dõi bài nộp và chấm điểm." />
+        <ACard :bordered="false" class="teacher-card">
+            <div class="teacher-empty-state">
+                <span class="teacher-mark teacher-empty-icon"><BookOpen class="size-7" /></span>
+                <h3>Module bài tập chưa được mở</h3>
+                <p>Backend bài tập, bài nộp và quyền theo phạm vi lớp sẽ được xây dựng ở giai đoạn tiếp theo. Thao tác giao bài được khóa để tránh tạo dữ liệu giả.</p>
+                <AButton disabled size="large" class="mt-5"><template #icon><LockKeyhole class="size-4" /></template>Giao bài tập · Đang phát triển</AButton>
+            </div>
+        </ACard>
+    </section>
 </template>

@@ -139,6 +139,7 @@ function validationErrors(error:unknown):TeacherFormErrors {
 }
 
 async function saveTeacher(payload:TeacherCreateInput|TeacherUpdateInput) {
+    if (saving.value) return;
     saving.value = true;
     formErrors.value = {};
     try {
@@ -170,7 +171,7 @@ function blockingClassMessage(classes:Array<Pick<TeacherClass,"name"|"code">>) {
 }
 
 async function confirmAction() {
-    if (!selected.value || !actionType.value) return;
+    if (!selected.value || !actionType.value || actionSaving.value) return;
     actionSaving.value = true;
     actionError.value = "";
     try {
