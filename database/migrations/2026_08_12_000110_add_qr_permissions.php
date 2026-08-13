@@ -2,10 +2,11 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\PermissionRegistrar;
 
 return new class extends Migration
 {
+    public $withinTransaction = false;
+
     private const PERMISSIONS = [
         'view-child-qr',
         'scan-attendance-qr',
@@ -14,8 +15,6 @@ return new class extends Migration
 
     public function up(): void
     {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
         $tableNames = config('permission.table_names');
         $columnNames = config('permission.column_names');
         $permissionsTable = $tableNames['permissions'];
@@ -71,16 +70,13 @@ return new class extends Migration
             DB::table($rolePermissionsTable)->insertOrIgnore($rows);
         }
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function down(): void
     {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
         DB::table(config('permission.table_names.permissions'))
             ->where('guard_name', 'web')
             ->whereIn('name', self::PERMISSIONS)
             ->delete();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 };

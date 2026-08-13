@@ -2,10 +2,11 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\PermissionRegistrar;
 
 return new class extends Migration
 {
+    public $withinTransaction = false;
+
     private const GRANTS = [
         'admin' => ['create-attendance-qr', 'check-in-attendance-qr'],
         'teacher' => ['create-attendance-qr'],
@@ -14,8 +15,6 @@ return new class extends Migration
 
     public function up(): void
     {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
         $tables = config('permission.table_names');
         $columns = config('permission.column_names');
         $now = now();
@@ -54,16 +53,13 @@ return new class extends Migration
         if ($rows !== []) {
             DB::table($tables['role_has_permissions'])->insertOrIgnore($rows);
         }
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function down(): void
     {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
         DB::table(config('permission.table_names.permissions'))
             ->where('guard_name', 'web')
             ->whereIn('name', collect(self::GRANTS)->flatten()->unique())
             ->delete();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 };
