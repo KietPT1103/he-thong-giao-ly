@@ -1,21 +1,30 @@
 import client from "./client";
 import type { ApiResponse } from "../types/api";
 
-export interface ChildQrPayload {
+export interface AttendanceSessionQrPayload {
     token: string;
-    version: number;
-    child: { id: number; code: string; full_name: string };
+    session: {
+        id: number;
+        held_at: string;
+        qr_expires_at: string;
+        note: string | null;
+        class: { id: number; name: string; code: string };
+    };
 }
 
-export interface QrScanResult {
+export interface AttendanceQrCheckInResult {
     attendance: {
         id: number;
         child_id: number;
         status: "present" | "late";
         arrived_at: string;
     };
-    child: { id: number; code: string; full_name: string; saint_name: string | null };
-    scanned_at: string;
+    session: {
+        id: number;
+        held_at: string;
+        class: { id: number; name: string; code: string };
+    };
+    checked_in_at: string;
     was_duplicate: boolean;
 }
 
@@ -27,14 +36,16 @@ export interface FamilyChild {
     status: string;
 }
 
-export const getChildQr = (childId: number) =>
-    client.get<ApiResponse<ChildQrPayload>>(`/children/${childId}/qr`);
-
-export const rotateChildQr = (childId: number) =>
-    client.post<ApiResponse<ChildQrPayload>>(`/admin/children/${childId}/qr/rotate`);
-
-export const scanAttendanceQr = (sessionId: number, token: string) =>
-    client.post<ApiResponse<QrScanResult>>(`/attendance-sessions/${sessionId}/qr/scan`, { token });
-
 export const getMyFamilyChildren = () =>
     client.get<ApiResponse<FamilyChild[]>>("/parents/me/children");
+
+export const createAttendanceQr = (
+    classId: number,
+    payload: { held_at: string; qr_expires_at: string; note?: string },
+) => client.post<ApiResponse<AttendanceSessionQrPayload>>(`/classes/${classId}/attendance-qr`, payload);
+
+export const getAttendanceSessionQr = (sessionId: number) =>
+    client.get<ApiResponse<AttendanceSessionQrPayload>>(`/attendance-sessions/${sessionId}/qr`);
+
+export const checkInAttendanceQr = (token: string) =>
+    client.post<ApiResponse<AttendanceQrCheckInResult>>("/attendance/qr/check-in", { token });

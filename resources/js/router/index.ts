@@ -136,10 +136,10 @@ const routes: RouteRecordRaw[] = [
     ),
     protectedRoute(
         "/teacher/qr-scanner",
-        "Điểm danh QR",
+        "Tạo QR điểm danh",
         ["teacher"],
         () => import("../views/QrScannerView.vue"),
-        "scan-attendance-qr",
+        "create-attendance-qr",
     ),
     ...[
         ["/mass-attendance", "Lịch sử đi lễ"],
@@ -159,7 +159,6 @@ const routes: RouteRecordRaw[] = [
         "Các con của tôi",
         ["parent"],
         () => import("../views/ParentChildrenQrView.vue"),
-        "view-child-qr",
     ),
     ...[
         ["/children/:id", "Hồ sơ thiếu nhi"],
@@ -176,10 +175,10 @@ const routes: RouteRecordRaw[] = [
     child("", "Tổng quan"),
     protectedRoute(
         "/child/my-qr",
-        "Mã QR của tôi",
+        "Quét QR điểm danh",
         ["child"],
         () => import("../views/ChildQrView.vue"),
-        "view-child-qr",
+        "check-in-attendance-qr",
     ),
     ...[
         ["/schedule", "Lịch học"],

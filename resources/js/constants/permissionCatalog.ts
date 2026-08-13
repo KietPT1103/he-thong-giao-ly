@@ -16,7 +16,7 @@ export const roleDescriptions: Record<string, string> = {
     admin: "Toàn quyền quản trị và cấu hình hệ thống.",
     teacher: "Quản lý lớp được phân công, thiếu nhi và điểm danh.",
     parent: "Theo dõi hồ sơ và hoạt động của các con đã liên kết.",
-    child: "Truy cập nội dung dành cho thiếu nhi và mã QR cá nhân.",
+    child: "Truy cập nội dung dành cho thiếu nhi và tự quét QR điểm danh.",
 };
 
 export const permissionLabels: Record<string, string> = {
@@ -52,9 +52,8 @@ export const permissionLabels: Record<string, string> = {
     "take-attendance": "Thực hiện điểm danh",
     "update-attendance": "Cập nhật điểm danh",
     "view-attendance-reports": "Xem báo cáo điểm danh",
-    "view-child-qr": "Xem mã QR thiếu nhi",
-    "scan-attendance-qr": "Quét QR điểm danh",
-    "rotate-child-qr": "Thu hồi và tạo lại QR thiếu nhi",
+    "create-attendance-qr": "Tạo QR điểm danh theo buổi học",
+    "check-in-attendance-qr": "Tự điểm danh bằng QR",
     "create-leave-request": "Tạo đơn xin phép",
     "view-leave-requests": "Xem đơn xin phép",
     "approve-leave-request": "Duyệt đơn xin phép",
@@ -92,14 +91,14 @@ export const permissionGroups: PermissionGroup[] = [
     {
         id: "family",
         label: "Thiếu nhi & phụ huynh",
-        description: "Hồ sơ gia đình, liên kết và mã QR cá nhân.",
-        permissions: ["view-children", "create-children", "update-children", "delete-children", "view-parents", "create-parents", "update-parents", "link-parent-child", "view-child-qr", "rotate-child-qr"],
+        description: "Hồ sơ gia đình và liên kết phụ huynh – thiếu nhi.",
+        permissions: ["view-children", "create-children", "update-children", "delete-children", "view-parents", "create-parents", "update-parents", "link-parent-child"],
     },
     {
         id: "attendance",
         label: "Điểm danh",
         description: "Phiên điểm danh, quét QR và báo cáo tham dự.",
-        permissions: ["view-attendance", "create-attendance-session", "take-attendance", "update-attendance", "view-attendance-reports", "scan-attendance-qr"],
+        permissions: ["view-attendance", "create-attendance-session", "take-attendance", "update-attendance", "view-attendance-reports", "create-attendance-qr", "check-in-attendance-qr"],
     },
     {
         id: "leave",

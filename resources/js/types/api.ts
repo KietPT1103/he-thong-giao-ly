@@ -74,6 +74,7 @@ export interface AttendanceSession {
     id: number;
     catechism_class_id: number;
     held_at: string;
+    qr_expires_at?: string | null;
     note: string | null;
     attendances: Attendance[];
     catechism_class?: CatechismClass;

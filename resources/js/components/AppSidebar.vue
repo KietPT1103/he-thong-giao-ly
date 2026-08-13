@@ -39,14 +39,14 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/teacher/children", label: "Thiếu nhi", icon: Users, permission: "view-children" },
         { to: "/teacher/schedule", label: "Lịch dạy", icon: CalendarDays, permission: "view-classes" },
         { to: "/teacher/attendance", label: "Điểm danh lớp", icon: CheckSquare, permission: "view-attendance" },
-        { to: "/teacher/qr-scanner", label: "Điểm danh QR", icon: QrCode, permission: "scan-attendance-qr" },
+        { to: "/teacher/qr-scanner", label: "Tạo QR điểm danh", icon: QrCode, permission: "create-attendance-qr" },
         { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen, permission: "view-classes" },
         { to: "/teacher/submissions", label: "Bài cần chấm", icon: ClipboardList, permission: "view-classes" },
         { to: "/teacher/announcements", label: "Thông báo lớp", icon: Bell, permission: "view-notifications" },
     ],
     parent: [
         { to: "/parent", label: "Tổng quan", icon: Home },
-        { to: "/parent/children", label: "Các con của tôi", icon: Users, permission: "view-child-qr" },
+        { to: "/parent/children", label: "Các con của tôi", icon: Users },
         { to: "/parent/schedule", label: "Lịch học", icon: CalendarDays },
         { to: "/parent/mass-attendance", label: "Lịch sử tham dự", icon: Church },
         { to: "/parent/assignments", label: "Bài tập", icon: BookOpen },
@@ -59,7 +59,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/child/mass", label: "Thánh lễ", icon: Church },
         { to: "/child/assignments", label: "Bài tập", icon: BookOpen },
         { to: "/child/points", label: "Điểm thưởng", icon: Gift },
-        { to: "/child/my-qr", label: "Mã QR", icon: QrCode, permission: "view-child-qr" },
+        { to: "/child/my-qr", label: "Quét QR điểm danh", icon: QrCode, permission: "check-in-attendance-qr" },
     ],
 };
 const navigation = computed(() => (navigationByRole[role.value] ?? []).filter((item) => !item.permission || auth.hasPermission(item.permission)));

@@ -122,8 +122,6 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
             Route::delete('{child}', [AdminChildController::class, 'destroy'])
                 ->middleware(['can:delete-children', 'password.recent', 'throttle:sensitive']);
             Route::post('{child}/restore', [AdminChildController::class, 'restore'])->middleware('can:delete-children');
-            Route::post('{child}/qr/rotate', [QrAttendanceController::class, 'rotate'])
-                ->middleware(['can:rotate-child-qr', 'password.recent', 'throttle:sensitive']);
         });
         Route::get('announcements', [AdminDirectoryController::class, 'announcements']);
     });
@@ -133,14 +131,15 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('classes/{class}/children', [ClassController::class, 'children']);
     Route::get('classes/{class}/attendance-sessions', [AttendanceController::class, 'index']);
     Route::post('classes/{class}/attendance-sessions', [AttendanceController::class, 'store']);
+    Route::post('classes/{class}/attendance-qr', [QrAttendanceController::class, 'create']);
     Route::get('attendance-sessions/{session}', [AttendanceController::class, 'show']);
+    Route::get('attendance-sessions/{session}/qr', [QrAttendanceController::class, 'sessionQr']);
     Route::post('attendance-sessions/{session}/mark', [AttendanceController::class, 'mark']);
     Route::post('attendance-sessions/{session}/mark-all-present', [AttendanceController::class, 'markAll']);
-    Route::post('attendance-sessions/{session}/qr/scan', [QrAttendanceController::class, 'scan'])
-        ->middleware(['can:scan-attendance-qr', 'throttle:qr-scan']);
+    Route::post('attendance/qr/check-in', [QrAttendanceController::class, 'checkIn'])
+        ->middleware(['can:check-in-attendance-qr', 'throttle:qr-scan']);
     Route::get('attendance-sessions/{session}/summary', [AttendanceController::class, 'summary']);
-    Route::get('children/{child}/qr', [QrAttendanceController::class, 'show'])->middleware('can:view-child-qr');
-    Route::get('parents/me/children', [QrAttendanceController::class, 'familyChildren'])->middleware('can:view-child-qr');
+    Route::get('parents/me/children', [QrAttendanceController::class, 'familyChildren']);
 });
 
 if (app()->environment('testing')) {

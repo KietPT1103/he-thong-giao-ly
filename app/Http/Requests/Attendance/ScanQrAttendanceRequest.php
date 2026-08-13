@@ -8,7 +8,7 @@ class ScanQrAttendanceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('scan-attendance-qr') === true;
+        return $this->user()?->can('check-in-attendance-qr') === true;
     }
 
     public function rules(): array

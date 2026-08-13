@@ -9,11 +9,11 @@ class Child extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['parish_id', 'user_id', 'code', 'full_name', 'saint_name', 'date_of_birth', 'status', 'qr_version'];
+    protected $fillable = ['parish_id', 'user_id', 'code', 'full_name', 'saint_name', 'date_of_birth', 'status'];
 
     protected function casts(): array
     {
-        return ['date_of_birth' => 'date', 'qr_version' => 'integer'];
+        return ['date_of_birth' => 'date'];
     }
 
     public function user()
