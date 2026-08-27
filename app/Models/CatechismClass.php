@@ -46,6 +46,7 @@ class CatechismClass extends Model
     public function children()
     {
         return $this->belongsToMany(Child::class, 'enrollments')
+            ->wherePivot('status', Enrollment::STATUS_ACTIVE)
             ->withPivot('status')
             ->withTimestamps();
     }

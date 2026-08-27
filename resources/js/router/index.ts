@@ -7,12 +7,6 @@ import type { Component } from "vue";
 import { useAuthStore } from "../stores/authStore";
 import LandingPage from "../views/LandingPage.vue";
 import LoginView from "../views/LoginView.vue";
-import DashboardView from "../views/DashboardView.vue";
-import ClassesView from "../views/ClassesView.vue";
-import AttendanceView from "../views/AttendanceView.vue";
-import ChildrenView from "../views/ChildrenView.vue";
-import ScheduleView from "../views/ScheduleView.vue";
-import AssignmentsView from "../views/AssignmentsView.vue";
 import ModulePendingView from "../views/ModulePendingView.vue";
 import ForbiddenView from "../views/ForbiddenView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
@@ -67,6 +61,11 @@ const routes: RouteRecordRaw[] = [
         component: ModulePendingView,
         meta: { public: true, title: "Sự kiện" },
     },
+    {
+        path: "/attendance/scan",
+        component: () => import("../views/QuickAttendanceView.vue"),
+        meta: { public: true, title: "Điểm danh QR" },
+    },
 
     protectedRoute("/admin", "Tổng quan", ["admin"], () => import("../views/AdminDashboardView.vue")),
     protectedRoute("/admin/accounts", "Quản lý tài khoản", ["admin"], () => import("../views/AdminAccountsView.vue"), "manage-users"),
@@ -92,47 +91,47 @@ const routes: RouteRecordRaw[] = [
         ["/settings", "Cài đặt"],
     ].map(([path, title]) => admin(path, title)),
 
-    protectedRoute("/teacher", "Tổng quan", ["teacher"], DashboardView),
+    protectedRoute("/teacher", "Tổng quan", ["teacher"], () => import("../views/DashboardView.vue")),
     protectedRoute(
         "/teacher/classes",
         "Lớp của tôi",
         ["teacher"],
-        ClassesView,
+        () => import("../views/ClassesView.vue"),
         "view-classes",
     ),
     protectedRoute(
         "/teacher/classes/:id",
         "Chi tiết lớp",
         ["teacher"],
-        ClassesView,
+        () => import("../views/ClassesView.vue"),
         "view-classes",
     ),
     protectedRoute(
         "/teacher/children",
         "Thiếu nhi",
         ["teacher"],
-        ChildrenView,
+        () => import("../views/ChildrenView.vue"),
         "view-children",
     ),
     protectedRoute(
         "/teacher/schedule",
         "Lịch dạy",
         ["teacher"],
-        ScheduleView,
+        () => import("../views/ScheduleView.vue"),
         "view-classes",
     ),
     protectedRoute(
         "/teacher/attendance",
         "Điểm danh lớp",
         ["teacher"],
-        AttendanceView,
+        () => import("../views/AttendanceView.vue"),
         "view-attendance",
     ),
     protectedRoute(
         "/teacher/assignments",
         "Bài tập",
         ["teacher"],
-        AssignmentsView,
+        () => import("../views/AssignmentsView.vue"),
     ),
     protectedRoute(
         "/teacher/qr-scanner",

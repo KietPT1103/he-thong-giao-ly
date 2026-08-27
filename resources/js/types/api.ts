@@ -41,20 +41,49 @@ export interface CatechismClass {
     name: string;
     code: string;
     status: string;
+    academic_year_id: number;
+    catechism_level_id: number;
+    classroom_id: number | null;
+    can_manage: boolean;
+    can_manage_enrollments: boolean;
+    parish?: { id: number; name: string; code: string } | null;
     academic_year?: { id: number; name: string };
     level?: { id: number; name: string };
     classroom?: { id: number | null; name: string | null };
     children_count?: number;
+    teachers?: Array<{
+        id: number;
+        name: string;
+        code: string;
+        email: string;
+        phone: string | null;
+        role: "primary" | "assistant";
+    }>;
     schedules: ClassSchedule[];
 }
 export interface Child {
     id: number;
     code: string;
     full_name: string;
+    avatar_url: string | null;
     saint_name: string | null;
     date_of_birth: string | null;
     status: string;
     parents?: Array<{ id: number; name: string; phone: string | null }>;
+}
+
+export interface EnrollmentCandidate extends Child {
+    current_class: { id: number; name: string; code: string } | null;
+}
+
+export interface TeacherEnrollment {
+    id: number;
+    child_id: number;
+    catechism_class_id: number;
+    status: "active" | "inactive";
+    ended_at: string | null;
+    ended_reason: "removed" | "stopped" | "transferred" | null;
+    child: { id: number; code: string; full_name: string };
 }
 export type AttendanceStatus =
     | "present"

@@ -26,7 +26,12 @@ class AdminAccountController extends ApiController
             'status' => ['nullable', Rule::in(['active', 'blocked', 'archived'])],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
-        $query = User::withTrashed()->with(['roles', 'permissions', 'deniedPermissions'])
+        $query = User::withTrashed()->with([
+            'roles.permissions',
+            'permissions',
+            'deniedPermissions',
+            'child:id,user_id',
+        ])
             ->when($validated['search'] ?? null, fn ($q, $search) => $q->where(fn ($inner) => $inner
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))

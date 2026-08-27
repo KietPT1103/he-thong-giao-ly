@@ -13,8 +13,8 @@ Trạng thái tại thời điểm audit; cập nhật sau mỗi phase.
 | Login | Hiện/ẩn mật khẩu | Toggle input | Client | Public | Hoạt động |
 | App shell | Đăng xuất | Gọi API và về login | `POST /api/auth/logout` | Authenticated | Hoạt động |
 | Dashboard giáo lý viên | Điểm danh nhanh | Điều hướng | `/teacher/attendance` | `view-attendance` | Hoạt động |
-| Lớp của tôi | Xem lớp | Điều hướng | `/teacher/classes/:id` | `view-classes` | Phase 1 |
-| Lớp của tôi | Tạo bài tập | Điều hướng form | `/teacher/assignments/new` | `create-assignments` | Ẩn đến Phase 4 |
+| Danh sách lớp | Xem lớp | Điều hướng | `/teacher/classes/:id` | `view-classes` | Phase 1 |
+| Danh sách lớp | Tạo bài tập | Điều hướng form | `/teacher/assignments/new` | `create-assignments` | Ẩn đến Phase 4 |
 | Điểm danh | Tạo phiên | Submit form | `POST /api/classes/{id}/attendance-sessions` | `create-attendance-session` | Phase 1 |
 | Điểm danh | Đánh dấu tất cả | Cập nhật API | `POST /api/attendance-sessions/{id}/mark-all-present` | `update-attendance` | Phase 1 |
 | Điểm danh | Lưu điểm danh | Submit API | `POST /api/attendance-sessions/{id}/mark` | `update-attendance` | Phase 1 |

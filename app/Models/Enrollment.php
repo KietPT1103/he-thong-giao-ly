@@ -10,7 +10,25 @@ class Enrollment extends Model
 
     public const STATUS_INACTIVE = 'inactive';
 
-    protected $fillable = ['child_id', 'catechism_class_id', 'status'];
+    public const ENDED_REMOVED = 'removed';
+
+    public const ENDED_STOPPED = 'stopped';
+
+    public const ENDED_TRANSFERRED = 'transferred';
+
+    protected $fillable = [
+        'child_id',
+        'catechism_class_id',
+        'status',
+        'ended_at',
+        'ended_reason',
+        'ended_by',
+    ];
+
+    protected function casts(): array
+    {
+        return ['ended_at' => 'datetime'];
+    }
 
     public function child()
     {
@@ -20,5 +38,10 @@ class Enrollment extends Model
     public function catechismClass()
     {
         return $this->belongsTo(CatechismClass::class);
+    }
+
+    public function endedBy()
+    {
+        return $this->belongsTo(User::class, 'ended_by');
     }
 }

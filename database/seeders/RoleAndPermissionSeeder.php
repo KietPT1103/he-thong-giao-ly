@@ -21,7 +21,7 @@ class RoleAndPermissionSeeder extends Seeder
             Role::findOrCreate($name, 'web');
         }
         Role::findByName('admin')->syncPermissions($all);
-        Role::findByName('teacher')->syncPermissions(['view-classes', 'view-children', 'view-attendance', 'create-attendance-session', 'take-attendance', 'update-attendance', 'create-attendance-qr', 'view-leave-requests', 'approve-leave-request', 'reject-leave-request', 'view-notifications', 'send-notifications']);
+        Role::findByName('teacher')->syncPermissions(['view-classes', 'create-classes', 'update-classes', 'delete-classes', 'enroll-children', 'view-children', 'view-attendance', 'create-attendance-session', 'take-attendance', 'update-attendance', 'create-attendance-qr', 'view-leave-requests', 'approve-leave-request', 'reject-leave-request', 'view-notifications', 'send-notifications']);
         Role::findByName('parent')->syncPermissions(['create-leave-request', 'view-leave-requests', 'view-notifications']);
         Role::findByName('child')->syncPermissions(['check-in-attendance-qr', 'view-notifications']);
     }

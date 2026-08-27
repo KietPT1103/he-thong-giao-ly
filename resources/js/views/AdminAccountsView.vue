@@ -17,11 +17,12 @@ import ATag from "ant-design-vue/es/tag";
 import ATabs, { TabPane as ATabPane } from "ant-design-vue/es/tabs";
 import ATooltip from "ant-design-vue/es/tooltip";
 import type { ColumnsType } from "ant-design-vue/es/table/interface";
-import { Check, GraduationCap, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck, UserRound } from "lucide-vue-next";
+import { Check, GraduationCap, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil, Plus, Save, Search, ShieldCheck } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { createAccount, getAccountOptions, listAccounts, resetAccountPassword, updateAccount, updateAccountAccess, updateAccountStatus, type AccountMeta, type AccountOptions } from "../api/accounts";
 import AccountPermissionEditorModal from "../components/AccountPermissionEditorModal.vue";
 import AdminActionConfirmModal from "../components/AdminActionConfirmModal.vue";
+import UserAvatar from "../components/UserAvatar.vue";
 import { displayPermission, displayRole, permissionGroups, roleDescriptions } from "../constants/permissionCatalog";
 import { useAuthStore } from "../stores/authStore";
 import type { User } from "../types/api";
@@ -330,9 +331,7 @@ onMounted(async () => {
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'account'">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                                <UserRound aria-hidden="true" class="block size-5 stroke-[1.75]" />
-                            </span>
+                            <UserAvatar :name="record.name" :avatar-url="record.avatar_url" />
                             <div class="flex min-w-0 flex-col items-start">
                                 <b class="block truncate text-[13px] font-semibold text-blue-950">{{ record.name }}</b>
                                 <span class="mt-0.5 block truncate text-xs text-slate-500">{{ record.email }}</span>
@@ -366,9 +365,7 @@ onMounted(async () => {
     >
         <template v-if="selected" #title>
             <div class="flex min-w-0 items-center gap-3 pr-10">
-                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                    <UserRound aria-hidden="true" class="block size-5 stroke-[1.75]" />
-                </span>
+                <UserAvatar :name="selected.name" :avatar-url="selected.avatar_url" />
                 <div class="min-w-0 flex-1">
                     <strong class="block truncate text-[15px] font-bold text-blue-950">{{ selected.name }}</strong>
                     <span class="mt-0.5 block truncate text-xs font-normal text-slate-500">{{ selected.email }}</span>

@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Middleware\AuthenticateChildDevice;
 use App\Http\Middleware\EnforceAbsoluteSessionLifetime;
-use App\Http\Middleware\RequireRecentPasswordConfirmation;
 use App\Http\Middleware\EnforceProductionHttps;
+use App\Http\Middleware\RequireRecentPasswordConfirmation;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(EnforceProductionHttps::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->alias([
+            'child.device' => AuthenticateChildDevice::class,
             'session.absolute' => EnforceAbsoluteSessionLifetime::class,
             'password.recent' => RequireRecentPasswordConfirmation::class,
         ]);

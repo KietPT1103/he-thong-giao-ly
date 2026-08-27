@@ -50,6 +50,11 @@ class Child extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    public function device()
+    {
+        return $this->hasOne(ChildDevice::class);
+    }
+
     public function leaveRequests()
     {
         return $this->hasMany(LeaveRequest::class);

@@ -3,6 +3,7 @@ import type { ApiResponse } from "../types/api";
 
 export interface AttendanceSessionQrPayload {
     token: string;
+    scan_url: string;
     session: {
         id: number;
         held_at: string;
@@ -10,6 +11,20 @@ export interface AttendanceSessionQrPayload {
         note: string | null;
         class: { id: number; name: string; code: string };
     };
+}
+
+export interface QrWorkspaceSession {
+    id: number;
+    catechism_class_id: number;
+    held_at: string;
+    qr_expires_at: string;
+    note: string | null;
+    class: { id: number; name: string; code: string };
+}
+
+export interface QrWorkspacePayload {
+    classes: Array<{ id: number; name: string; code: string }>;
+    recent_sessions: QrWorkspaceSession[];
 }
 
 export interface AttendanceQrCheckInResult {
@@ -43,6 +58,9 @@ export const createAttendanceQr = (
     classId: number,
     payload: { held_at: string; qr_expires_at: string; note?: string },
 ) => client.post<ApiResponse<AttendanceSessionQrPayload>>(`/classes/${classId}/attendance-qr`, payload);
+
+export const getQrWorkspace = () =>
+    client.get<ApiResponse<QrWorkspacePayload>>("/teacher/qr-workspace");
 
 export const getAttendanceSessionQr = (sessionId: number) =>
     client.get<ApiResponse<AttendanceSessionQrPayload>>(`/attendance-sessions/${sessionId}/qr`);

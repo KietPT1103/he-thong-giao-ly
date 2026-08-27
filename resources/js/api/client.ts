@@ -12,9 +12,11 @@ const client = axios.create({
 client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
+        const isDeviceCheckIn = error.config?.url === "/attendance/qr/check-in";
         if (
             error.response?.status === 401 &&
             error.config?.url !== "/auth/me" &&
+            !isDeviceCheckIn &&
             location.pathname !== "/login"
         ) {
             window.dispatchEvent(

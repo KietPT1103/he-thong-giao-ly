@@ -44,8 +44,9 @@ class User extends Authenticatable
     public function hasPermissionTo($permission, $guardName = null): bool
     {
         $resolvedPermission = $this->filterPermission($permission, $guardName);
+        $this->loadMissing('deniedPermissions');
 
-        if ($this->deniedPermissions()->whereKey($resolvedPermission->getKey())->exists()) {
+        if ($this->deniedPermissions->contains('id', $resolvedPermission->getKey())) {
             return false;
         }
 
@@ -59,7 +60,8 @@ class User extends Authenticatable
 
     public function effectivePermissions()
     {
-        $denied = $this->deniedPermissions()->pluck('permissions.id');
+        $this->loadMissing('deniedPermissions');
+        $denied = $this->deniedPermissions->pluck('id');
 
         return $this->getAllPermissions()->reject(fn (Permission $permission) => $denied->contains($permission->id))->values();
     }

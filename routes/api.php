@@ -11,9 +11,11 @@ use App\Http\Controllers\Api\AdminParishController;
 use App\Http\Controllers\Api\AdminTeacherController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChildDeviceController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\QrAttendanceController;
+use App\Http\Controllers\Api\TeacherClassController;
 use App\Http\Controllers\Api\TeacherController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +43,12 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('account', [AccountController::class, 'show']);
     Route::patch('account', [AccountController::class, 'update']);
     Route::post('account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:upload');
+
+    Route::prefix('child-device')->middleware('can:check-in-attendance-qr')->group(function () {
+        Route::get('/', [ChildDeviceController::class, 'show']);
+        Route::post('/', [ChildDeviceController::class, 'store'])->middleware('throttle:sensitive');
+        Route::delete('/', [ChildDeviceController::class, 'destroy'])->middleware('throttle:sensitive');
+    });
 
     Route::prefix('account/mfa')->middleware(['can:access-admin'])->group(function () {
         Route::get('/', [MfaController::class, 'show']);
@@ -126,7 +134,19 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
         Route::get('announcements', [AdminDirectoryController::class, 'announcements']);
     });
     Route::get('teacher/dashboard', [TeacherController::class, 'dashboard']);
+    Route::get('teacher/qr-workspace', [QrAttendanceController::class, 'workspace'])->middleware('can:create-attendance-qr');
     Route::get('teachers/me/classes', [TeacherController::class, 'classes'])->middleware('can:view-classes');
+    Route::get('teachers/me/children', [TeacherController::class, 'children'])->middleware('can:view-children');
+    Route::prefix('teacher/classes')->group(function () {
+        Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');
+        Route::get('{class}/workspace', [TeacherClassController::class, 'workspace'])->middleware('can:view-classes');
+        Route::post('/', [TeacherClassController::class, 'store'])->middleware('can:create-classes');
+        Route::get('{class}/enrollment-options', [TeacherClassController::class, 'enrollmentOptions'])->middleware('can:enroll-children');
+        Route::post('{class}/enrollments', [TeacherClassController::class, 'storeEnrollment'])->middleware('can:enroll-children');
+        Route::patch('{class}/enrollments/{child}', [TeacherClassController::class, 'updateEnrollment'])->middleware('can:enroll-children');
+        Route::patch('{class}', [TeacherClassController::class, 'update'])->middleware('can:update-classes');
+        Route::delete('{class}', [TeacherClassController::class, 'destroy'])->middleware('can:delete-classes');
+    });
     Route::get('classes/{class}', [ClassController::class, 'show']);
     Route::get('classes/{class}/children', [ClassController::class, 'children']);
     Route::get('classes/{class}/attendance-sessions', [AttendanceController::class, 'index']);
@@ -136,11 +156,12 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('attendance-sessions/{session}/qr', [QrAttendanceController::class, 'sessionQr']);
     Route::post('attendance-sessions/{session}/mark', [AttendanceController::class, 'mark']);
     Route::post('attendance-sessions/{session}/mark-all-present', [AttendanceController::class, 'markAll']);
-    Route::post('attendance/qr/check-in', [QrAttendanceController::class, 'checkIn'])
-        ->middleware(['can:check-in-attendance-qr', 'throttle:qr-scan']);
     Route::get('attendance-sessions/{session}/summary', [AttendanceController::class, 'summary']);
     Route::get('parents/me/children', [QrAttendanceController::class, 'familyChildren']);
 });
+
+Route::post('attendance/qr/check-in', [QrAttendanceController::class, 'checkIn'])
+    ->middleware(['web', 'child.device', 'throttle:qr-scan']);
 
 if (app()->environment('testing')) {
     Route::get('security-test-error', fn () => throw new RuntimeException('database-secret-detail'));

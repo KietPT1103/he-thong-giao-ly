@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -80,6 +81,51 @@ class AccountManagementTest extends TestCase
         ])->assertOk();
 
         Storage::disk('public')->assertExists($response->json('data.avatar_path'));
+    }
+
+    public function test_profile_returns_a_same_origin_avatar_url(): void
+    {
+        config()->set('filesystems.disks.public.url', 'http://localhost/storage');
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $teacher->update(['avatar_path' => 'avatars/avatar.png']);
+
+        $this->actingAs($teacher)
+            ->getJson('/api/account')
+            ->assertOk()
+            ->assertJsonPath('data.avatar_url', '/storage/avatars/avatar.png');
+    }
+
+    public function test_admin_account_list_includes_avatar_url(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $child->update(['avatar_path' => 'avatars/child-one.png']);
+
+        $this->actingAs($admin)
+            ->getJson('/api/admin/accounts?search=child@giaoly.test')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $child->id)
+            ->assertJsonPath('data.0.avatar_url', '/storage/avatars/child-one.png');
+    }
+
+    public function test_admin_account_list_query_count_does_not_scale_per_account(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        User::factory()->count(10)->create()->each->assignRole('parent');
+        $queryCount = 0;
+        DB::listen(function () use (&$queryCount): void {
+            $queryCount++;
+        });
+
+        $this->actingAs($admin)
+            ->getJson('/api/admin/accounts')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 14);
+
+        $this->assertLessThanOrEqual(12, $queryCount, sprintf(
+            'Danh sách tài khoản đã chạy %d query.',
+            $queryCount,
+        ));
     }
 
     public function test_denied_permission_overrides_role_permission_for_api_and_resource(): void

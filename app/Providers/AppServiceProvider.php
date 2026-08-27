@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\ChildDeviceCredentialService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -32,7 +33,12 @@ class AppServiceProvider extends ServiceProvider
         });
         RateLimiter::for('sensitive', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id.'|'.$request->ip()));
         RateLimiter::for('upload', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->id.'|'.$request->ip()));
-        RateLimiter::for('qr-scan', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('qr-scan', function (Request $request) {
+            $token = $request->cookie(ChildDeviceCredentialService::COOKIE_NAME);
+            $deviceKey = is_string($token) ? hash('sha256', $token) : 'guest';
+
+            return Limit::perMinute(120)->by($deviceKey.'|'.$request->ip());
+        });
         RateLimiter::for('mfa', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get('auth.mfa_user_id', $request->ip())));
     }
 }

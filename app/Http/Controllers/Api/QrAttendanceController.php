@@ -20,6 +20,35 @@ class QrAttendanceController extends ApiController
         private readonly AuditLogger $auditLogger,
     ) {}
 
+    public function workspace(Request $request)
+    {
+        $teacher = $request->user()->teacherProfile;
+        abort_unless($teacher && $request->user()->can('create-attendance-qr'), 403);
+        $classes = $teacher->classes()
+            ->where('catechism_classes.status', 'active')
+            ->orderBy('catechism_classes.name')
+            ->get(['catechism_classes.id', 'name', 'code']);
+        $sessions = AttendanceSession::query()
+            ->whereIn('catechism_class_id', $classes->pluck('id'))
+            ->whereNotNull('qr_expires_at')
+            ->with('catechismClass:id,name,code')
+            ->latest('held_at')
+            ->limit(12)
+            ->get(['id', 'catechism_class_id', 'held_at', 'qr_expires_at', 'note']);
+
+        return $this->success([
+            'classes' => $classes->map(fn (CatechismClass $class) => $class->only(['id', 'name', 'code']))->values(),
+            'recent_sessions' => $sessions->map(fn (AttendanceSession $session) => [
+                'id' => $session->id,
+                'catechism_class_id' => $session->catechism_class_id,
+                'held_at' => $session->held_at->toIso8601String(),
+                'qr_expires_at' => $session->qr_expires_at->toIso8601String(),
+                'note' => $session->note,
+                'class' => $session->catechismClass->only(['id', 'name', 'code']),
+            ])->values(),
+        ], 'Đã tải không gian tạo QR.');
+    }
+
     public function create(CreateAttendanceQrRequest $request, CatechismClass $class)
     {
         $this->authorize('takeAttendance', $class);
@@ -89,6 +118,8 @@ class QrAttendanceController extends ApiController
             ->firstOrFail();
         $duplicate = $inserted === 0;
 
+        $request->attributes->get('child_device')?->update(['last_used_at' => $now]);
+
         $this->auditLogger->record($request, 'attendance.qr_checked_in', $session, null, [
             'child_id' => $child->id,
             'attendance_id' => $attendance->id,
@@ -130,8 +161,11 @@ class QrAttendanceController extends ApiController
 
     private function sessionQrPayload(AttendanceSession $session): array
     {
+        $token = $this->sessionQrCodes->token($session);
+
         return [
-            'token' => $this->sessionQrCodes->token($session),
+            'token' => $token,
+            'scan_url' => '/attendance/scan?token='.rawurlencode($token),
             'session' => [
                 'id' => $session->id,
                 'held_at' => $session->held_at->toIso8601String(),
