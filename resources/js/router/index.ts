@@ -128,6 +128,13 @@ const routes: RouteRecordRaw[] = [
         "view-attendance",
     ),
     protectedRoute(
+        "/teacher/attendance/sessions",
+        "Danh sách phiên điểm danh",
+        ["teacher"],
+        () => import("../views/AttendanceSessionsView.vue"),
+        "view-attendance",
+    ),
+    protectedRoute(
         "/teacher/assignments",
         "Bài tập",
         ["teacher"],

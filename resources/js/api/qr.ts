@@ -65,5 +65,8 @@ export const getQrWorkspace = () =>
 export const getAttendanceSessionQr = (sessionId: number) =>
     client.get<ApiResponse<AttendanceSessionQrPayload>>(`/attendance-sessions/${sessionId}/qr`);
 
+export const createQrForAttendanceSession = (sessionId: number, qrExpiresAt: string) =>
+    client.post<ApiResponse<AttendanceSessionQrPayload>>(`/attendance-sessions/${sessionId}/qr`, { qr_expires_at: qrExpiresAt });
+
 export const checkInAttendanceQr = (token: string) =>
     client.post<ApiResponse<AttendanceQrCheckInResult>>("/attendance/qr/check-in", { token });

@@ -19,7 +19,6 @@ export interface User {
     deleted_at?: string | null;
     last_login_at?: string | null;
     must_change_password: boolean;
-    mfa_enabled?: boolean;
     child_profile_id?: number | null;
 }
 export interface PaginatedResponse<T> {
@@ -104,6 +103,9 @@ export interface AttendanceSession {
     catechism_class_id: number;
     held_at: string;
     qr_expires_at?: string | null;
+    status: "active" | "ended" | "cancelled";
+    started_at?: string | null;
+    ended_at?: string | null;
     note: string | null;
     attendances: Attendance[];
     catechism_class?: CatechismClass;

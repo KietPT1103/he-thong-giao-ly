@@ -118,9 +118,27 @@ export const getClassChildren = (
     client.get<ApiResponse<Child[]>>(`/classes/${classId}/children`, {
         params: { ...params, compact: 1 },
     });
-export const getAttendanceSessions = (classId: number) =>
-    client.get<ApiResponse<{ data: AttendanceSession[] }>>(
-        `/classes/${classId}/attendance-sessions`,
+export interface AttendanceSessionPage {
+    data: AttendanceSession[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+export interface AttendanceWorkspace {
+    classes: Array<{ id: number; name: string; code: string }>;
+    selected_class_id: number | null;
+    sessions: AttendanceSessionPage;
+    session_history_total: number;
+    children: Child[];
+}
+export const getAttendanceWorkspace = (classId?: number) =>
+    client.get<ApiResponse<AttendanceWorkspace>>("/teacher/attendance-workspace", {
+        params: { class_id: classId },
+    });
+export const getAttendanceSessions = (classId: number, page = 1, status?: "active" | "ended" | "cancelled") =>
+    client.get<ApiResponse<AttendanceSessionPage>>(
+        `/classes/${classId}/attendance-sessions`, { params: { page, status } },
     );
 export const createAttendanceSession = (
     classId: number,
@@ -150,3 +168,9 @@ export const markAllPresent = (sessionId: number) =>
     client.post<ApiResponse<AttendanceSession>>(
         `/attendance-sessions/${sessionId}/mark-all-present`,
     );
+export const endAttendanceSession = (sessionId: number) =>
+    client.post<ApiResponse<AttendanceSession>>(`/attendance-sessions/${sessionId}/end`);
+export const cancelAttendanceSession = (sessionId: number) =>
+    client.post<ApiResponse<AttendanceSession>>(`/attendance-sessions/${sessionId}/cancel`);
+export const deleteAttendanceSession = (sessionId: number) =>
+    client.delete<ApiResponse<null>>(`/attendance-sessions/${sessionId}`);

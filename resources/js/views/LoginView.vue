@@ -17,8 +17,6 @@ const email = ref('');
 const password = ref('');
 const show = ref(false);
 const error = ref('');
-const mfaRequired = ref(false);
-const mfaCode = ref('');
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
@@ -32,15 +30,7 @@ function useDemoAccount() {
 async function submit() {
   error.value = '';
   try {
-    if (mfaRequired.value) {
-      await auth.completeMfa(mfaCode.value);
-    } else {
-      const result = await auth.login(email.value, password.value);
-      if (result === 'mfa_required') {
-        mfaRequired.value = true;
-        return;
-      }
-    }
+    await auth.login(email.value, password.value);
     const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard';
     await router.push(target);
   } catch (e) {
@@ -142,24 +132,8 @@ async function submit() {
           </span>
         </label>
 
-        <label v-if="mfaRequired" class="field">
-          <span>Mã xác thực hai lớp</span>
-          <span class="input-wrap">
-            <ShieldCheck :size="18"/>
-            <input
-              v-model="mfaCode"
-              inputmode="numeric"
-              autocomplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxlength="6"
-              required
-              placeholder="Nhập mã 6 chữ số"
-            >
-          </span>
-        </label>
-
         <button :disabled="auth.isSubmitting" class="submit-button">
-          <span>{{ auth.isSubmitting ? 'Đang xác thực…' : mfaRequired ? 'Xác nhận mã bảo mật' : 'Đăng nhập' }}</span>
+          <span>{{ auth.isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập' }}</span>
           <ArrowRight v-if="!auth.isSubmitting" :size="18"/>
           <span v-else class="spinner"/>
         </button>

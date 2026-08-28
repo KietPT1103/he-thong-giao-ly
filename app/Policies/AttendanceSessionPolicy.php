@@ -46,7 +46,7 @@ class AttendanceSessionPolicy
      */
     public function delete(User $user, AttendanceSession $attendanceSession): bool
     {
-        return false;
+        return $user->can('update-attendance') && $user->teacherProfile?->classes()->whereKey($attendanceSession->catechism_class_id)->exists();
     }
 
     /**

@@ -60,7 +60,8 @@ class TeacherAuthorizationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.teachers.0.id', $teacher->teacherProfile->id)
             ->assertJsonPath('data.teachers.0.role', 'primary')
-            ->assertJsonPath('data.teachers.0.email', $teacher->email);
+            ->assertJsonPath('data.teachers.0.email', $teacher->email)
+            ->assertJsonPath('data.schedules.0.weekday', 7);
 
         $this->getJson("/api/classes/{$class->id}/children?search={$target->code}&status=studying")
             ->assertOk()

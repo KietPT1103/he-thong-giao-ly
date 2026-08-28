@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChildDeviceController;
 use App\Http\Controllers\Api\ClassController;
-use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\QrAttendanceController;
 use App\Http\Controllers\Api\TeacherClassController;
 use App\Http\Controllers\Api\TeacherController;
@@ -23,7 +22,6 @@ Route::prefix('auth')->middleware('web')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:6,1');
     Route::post('reset-password', [AuthController::class, 'reset'])->middleware('throttle:6,1');
-    Route::post('mfa-challenge', [AuthController::class, 'mfaChallenge'])->middleware('throttle:mfa');
 
     Route::middleware(['auth:sanctum', 'session.absolute'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -48,16 +46,6 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
         Route::get('/', [ChildDeviceController::class, 'show']);
         Route::post('/', [ChildDeviceController::class, 'store'])->middleware('throttle:sensitive');
         Route::delete('/', [ChildDeviceController::class, 'destroy'])->middleware('throttle:sensitive');
-    });
-
-    Route::prefix('account/mfa')->middleware(['can:access-admin'])->group(function () {
-        Route::get('/', [MfaController::class, 'show']);
-        Route::middleware(['password.recent', 'throttle:sensitive'])->group(function () {
-            Route::post('setup', [MfaController::class, 'setup']);
-            Route::post('confirm', [MfaController::class, 'confirm']);
-            Route::post('recovery-codes', [MfaController::class, 'recoveryCodes']);
-            Route::delete('/', [MfaController::class, 'destroy']);
-        });
     });
 
     Route::prefix('admin/accounts')->middleware(['can:access-admin', 'can:manage-users'])->group(function () {
@@ -135,6 +123,7 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     });
     Route::get('teacher/dashboard', [TeacherController::class, 'dashboard']);
     Route::get('teacher/qr-workspace', [QrAttendanceController::class, 'workspace'])->middleware('can:create-attendance-qr');
+    Route::get('teacher/attendance-workspace', [AttendanceController::class, 'workspace'])->middleware('can:view-attendance');
     Route::get('teachers/me/classes', [TeacherController::class, 'classes'])->middleware('can:view-classes');
     Route::get('teachers/me/children', [TeacherController::class, 'children'])->middleware('can:view-children');
     Route::prefix('teacher/classes')->group(function () {
@@ -154,6 +143,10 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::post('classes/{class}/attendance-qr', [QrAttendanceController::class, 'create']);
     Route::get('attendance-sessions/{session}', [AttendanceController::class, 'show']);
     Route::get('attendance-sessions/{session}/qr', [QrAttendanceController::class, 'sessionQr']);
+    Route::post('attendance-sessions/{session}/qr', [QrAttendanceController::class, 'createForSession']);
+    Route::post('attendance-sessions/{session}/end', [AttendanceController::class, 'end']);
+    Route::post('attendance-sessions/{session}/cancel', [AttendanceController::class, 'cancel']);
+    Route::delete('attendance-sessions/{session}', [AttendanceController::class, 'destroy']);
     Route::post('attendance-sessions/{session}/mark', [AttendanceController::class, 'mark']);
     Route::post('attendance-sessions/{session}/mark-all-present', [AttendanceController::class, 'markAll']);
     Route::get('attendance-sessions/{session}/summary', [AttendanceController::class, 'summary']);

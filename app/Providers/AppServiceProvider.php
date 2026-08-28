@@ -39,6 +39,5 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(120)->by($deviceKey.'|'.$request->ip());
         });
-        RateLimiter::for('mfa', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get('auth.mfa_user_id', $request->ip())));
     }
 }

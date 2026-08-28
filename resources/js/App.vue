@@ -12,6 +12,7 @@ const auth = useAuthStore();
 const open = ref(false);
 const publicPage = computed(() => Boolean(route.meta.public));
 const roleLabel = computed(() => ({ admin: "Quản trị hệ thống", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" }[auth.roles[0] ?? ""] ?? "Hệ thống giáo lý"));
+const fullWidthContent = computed(() => route.path === "/teacher/attendance" || route.path.startsWith("/teacher/attendance/"));
 
 function closeNavigation() {
     open.value = false;
@@ -46,7 +47,7 @@ onBeforeUnmount(() => {
                     <button disabled class="header-notification grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400" aria-label="Thông báo đang được hoàn thiện" title="Thông báo đang được hoàn thiện"><Bell class="size-5" /></button>
                 </div>
             </header>
-            <main class="app-content mx-auto w-full px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-7 lg:py-7"><RouterView /></main>
+            <main class="app-content mx-auto w-full px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-7 lg:py-7" :class="{ 'app-content--full': fullWidthContent }"><RouterView /></main>
         </div>
     </div>
 </template>

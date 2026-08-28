@@ -53,19 +53,12 @@ class QrAttendanceController extends ApiController
     {
         $this->authorize('takeAttendance', $class);
         $data = $request->validated();
-        $heldAt = Carbon::parse($data['held_at'])->utc();
         $expiresAt = Carbon::parse($data['qr_expires_at'])->utc();
-
-        if ($class->attendanceSessions()->where('held_at', $heldAt)->exists()) {
-            return $this->businessError('ATTENDANCE_SESSION_EXISTS', 'Phiên điểm danh tại thời điểm này đã tồn tại.');
+        $session = $class->attendanceSessions()->where('status', 'active')->latest('started_at')->first();
+        if (! $session) {
+            return $this->businessError('ACTIVE_ATTENDANCE_SESSION_REQUIRED', 'Hãy mở phiên điểm danh trước khi tạo mã QR.');
         }
-
-        $session = $class->attendanceSessions()->create([
-            'held_at' => $heldAt,
-            'qr_expires_at' => $expiresAt,
-            'taken_by' => $request->user()->id,
-            'note' => $data['note'] ?? null,
-        ]);
+        $session->update(['qr_expires_at' => $expiresAt, 'note' => $data['note'] ?? $session->note]);
         $session->setRelation('catechismClass', $class);
 
         $this->auditLogger->record($request, 'attendance.qr_created', $session, null, [
@@ -84,11 +77,28 @@ class QrAttendanceController extends ApiController
         return $this->success($this->sessionQrPayload($session->load('catechismClass')), 'Đã tải mã QR điểm danh.');
     }
 
+    public function createForSession(Request $request, AttendanceSession $session)
+    {
+        abort_unless($request->user()->can('create-attendance-qr') && $this->canScanSession($request, $session), 403);
+        if ($session->status !== 'active') {
+            return $this->businessError('ATTENDANCE_SESSION_ENDED', 'Chỉ phiên đang mở mới có thể tạo mã QR.');
+        }
+        $data = $request->validate(['qr_expires_at' => ['required', 'date', 'after:now']]);
+        $expiresAt = Carbon::parse($data['qr_expires_at'])->utc();
+        $session->update(['qr_expires_at' => $expiresAt]);
+        $this->auditLogger->record($request, 'attendance.qr_created', $session, null, ['qr_expires_at' => $expiresAt->toIso8601String()]);
+
+        return $this->success($this->sessionQrPayload($session->fresh()->load('catechismClass')), 'Đã tạo mã QR điểm danh.', status: 201);
+    }
+
     public function checkIn(ScanQrAttendanceRequest $request)
     {
         $session = $this->sessionQrCodes->resolve($request->validated('token'));
         if (! $session) {
             return $this->businessError('INVALID_QR_CODE', 'Mã QR không hợp lệ.');
+        }
+        if ($session->status !== 'active') {
+            return $this->businessError('ATTENDANCE_SESSION_ENDED', 'Phiên điểm danh đã kết thúc.');
         }
         if ($session->qr_expires_at->isPast()) {
             return $this->businessError('QR_CODE_EXPIRED', 'Mã QR điểm danh đã hết hạn.');

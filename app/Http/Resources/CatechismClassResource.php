@@ -53,7 +53,14 @@ class CatechismClassResource extends JsonResource
                 'phone' => $teacher->phone ?? $teacher->user->phone,
                 'role' => $teacher->pivot->role,
             ])->values()),
-            'schedules' => $this->whenLoaded('schedules'),
+            'schedules' => $this->whenLoaded('schedules', fn () => $this->schedules->map(fn ($schedule) => [
+                'id' => $schedule->id,
+                'weekday' => $schedule->normalizedWeekday(),
+                'starts_at' => substr((string) $schedule->starts_at, 0, 5),
+                'ends_at' => substr((string) $schedule->ends_at, 0, 5),
+                'starts_on' => $schedule->starts_on?->toDateString(),
+                'ends_on' => $schedule->ends_on?->toDateString(),
+            ])->values()),
         ];
     }
 }

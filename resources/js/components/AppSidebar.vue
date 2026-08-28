@@ -39,7 +39,6 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/teacher/children", label: "Thiếu nhi", icon: Users, permission: "view-children" },
         { to: "/teacher/schedule", label: "Lịch dạy", icon: CalendarDays, permission: "view-classes" },
         { to: "/teacher/attendance", label: "Điểm danh lớp", icon: CheckSquare, permission: "view-attendance" },
-        { to: "/teacher/qr-scanner", label: "Tạo QR điểm danh", icon: QrCode, permission: "create-attendance-qr" },
         { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen, permission: "view-classes" },
         { to: "/teacher/submissions", label: "Bài cần chấm", icon: ClipboardList, permission: "view-classes" },
         { to: "/teacher/announcements", label: "Thông báo lớp", icon: Bell, permission: "view-notifications" },

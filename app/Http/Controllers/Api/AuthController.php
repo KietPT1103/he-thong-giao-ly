@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use App\Services\AuditLogger;
-use App\Services\TotpService;
 
 class AuthController extends ApiController
 {
@@ -31,59 +30,6 @@ class AuthController extends ApiController
             return response()->json(['success' => false, 'message' => 'Tài khoản đã bị khóa.'], 403);
         }
 
-        if ($user->hasRole('admin') && $user->mfa_confirmed_at !== null) {
-            $request->session()->regenerate();
-            $request->session()->put('auth.mfa_user_id', $user->id);
-            $request->session()->put('auth.mfa_started_at', now()->timestamp);
-            $audit->record($request, 'auth.mfa_challenge_started', $user);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Vui lòng nhập mã xác thực hai lớp.',
-                'code' => 'MFA_REQUIRED',
-                'data' => null,
-            ], 202);
-        }
-
-        Auth::login($user, false);
-        $request->session()->regenerate();
-        $request->session()->put('auth.login_at', now()->timestamp);
-        $user->update(['last_login_at' => now()]);
-        $audit->record($request, 'auth.login_succeeded', $user);
-
-        return $this->success(new UserResource($user), 'Đăng nhập thành công');
-    }
-
-    public function mfaChallenge(Request $request, TotpService $totp, AuditLogger $audit)
-    {
-        $data = $request->validate(['code' => ['required', 'string', 'max:32']]);
-        $startedAt = (int) $request->session()->get('auth.mfa_started_at', 0);
-        if ($startedAt === 0 || now()->timestamp - $startedAt > 300) {
-            $request->session()->forget(['auth.mfa_user_id', 'auth.mfa_started_at']);
-            return response()->json([
-                'success' => false,
-                'message' => 'Phiên xác thực hai lớp đã hết hạn. Vui lòng đăng nhập lại.',
-                'code' => 'MFA_CHALLENGE_EXPIRED',
-            ], 401);
-        }
-        $user = User::find($request->session()->get('auth.mfa_user_id'));
-        $validTotp = $user?->mfa_secret && $totp->verify($user->mfa_secret, $data['code']);
-        $recoveryIndex = $user ? collect($user->mfa_recovery_codes ?? [])->search(
-            fn (string $hash) => Hash::check($data['code'], $hash),
-        ) : false;
-        if (! $user || (! $validTotp && $recoveryIndex === false)) {
-            $audit->record($request, 'auth.mfa_challenge_failed', $user);
-            return response()->json(['success' => false, 'message' => 'Mã xác thực không hợp lệ.', 'code' => 'INVALID_MFA_CODE'], 422);
-        }
-
-        if ($recoveryIndex !== false) {
-            $codes = $user->mfa_recovery_codes;
-            unset($codes[$recoveryIndex]);
-            $user->forceFill(['mfa_recovery_codes' => array_values($codes)])->save();
-            $audit->record($request, 'auth.mfa_recovery_code_used', $user);
-        }
-
-        $request->session()->forget(['auth.mfa_user_id', 'auth.mfa_started_at']);
         Auth::login($user, false);
         $request->session()->regenerate();
         $request->session()->put('auth.login_at', now()->timestamp);

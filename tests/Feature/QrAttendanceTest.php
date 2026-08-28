@@ -37,6 +37,13 @@ class QrAttendanceTest extends TestCase
     {
         $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
         $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $session = AttendanceSession::create([
+            'catechism_class_id' => $class->id,
+            'held_at' => now(),
+            'status' => 'active',
+            'started_at' => now(),
+            'taken_by' => $teacher->id,
+        ]);
 
         $response = $this->actingAs($teacher)->postJson("/api/classes/{$class->id}/attendance-qr", [
             'held_at' => now()->toIso8601String(),
@@ -46,6 +53,7 @@ class QrAttendanceTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.session.class.id', $class->id)
+            ->assertJsonPath('data.session.id', $session->id)
             ->assertJsonPath('data.session.note', 'Điểm danh đầu giờ')
             ->assertJsonStructure(['data' => ['token', 'scan_url', 'session' => ['id', 'held_at', 'qr_expires_at', 'class']]]);
         $this->assertSame(
@@ -130,6 +138,8 @@ class QrAttendanceTest extends TestCase
             'catechism_class_id' => $otherClass->id,
             'held_at' => now(),
             'qr_expires_at' => now()->addMinutes(10),
+            'status' => 'active',
+            'started_at' => now(),
             'taken_by' => $teacher->id,
         ]);
         $otherToken = app(AttendanceSessionQrCodeService::class)->token($otherSession);
@@ -143,6 +153,8 @@ class QrAttendanceTest extends TestCase
             'catechism_class_id' => $ownClassId,
             'held_at' => now()->subHour(),
             'qr_expires_at' => now()->subMinute(),
+            'status' => 'active',
+            'started_at' => now()->subHour(),
             'taken_by' => $teacher->id,
         ]);
         $expiredToken = app(AttendanceSessionQrCodeService::class)->token($expiredSession);
@@ -294,6 +306,8 @@ class QrAttendanceTest extends TestCase
             'catechism_class_id' => $childUser->child->activeEnrollment->catechism_class_id,
             'held_at' => now(),
             'qr_expires_at' => now()->addMinutes(10),
+            'status' => 'active',
+            'started_at' => now(),
             'taken_by' => $teacher->id,
         ]);
 

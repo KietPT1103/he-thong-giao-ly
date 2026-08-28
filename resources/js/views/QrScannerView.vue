@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import AAlert from "ant-design-vue/es/alert";
 import AButton from "ant-design-vue/es/button";
 import ACard from "ant-design-vue/es/card";
@@ -14,6 +15,7 @@ import {
 } from "../api/qr";
 import TeacherPageHeader from "../components/TeacherPageHeader.vue";
 
+const route = useRoute();
 const classes = ref<QrWorkspacePayload["classes"]>([]);
 const sessions = ref<QrWorkspaceSession[]>([]);
 const classId = ref<number>();
@@ -87,7 +89,9 @@ async function loadWorkspace() {
         const workspace = (await getQrWorkspace()).data.data;
         classes.value = workspace.classes;
         sessions.value = workspace.recent_sessions;
-        if (classes.value.length === 1) classId.value = classes.value[0].id;
+        const requestedClassId = Number(route.query.class);
+        if (classes.value.some(item => item.id === requestedClassId)) classId.value = requestedClassId;
+        else if (classes.value.length === 1) classId.value = classes.value[0].id;
     } catch (error) {
         errorMessage.value = apiMessage(error, "Không thể tải không gian tạo QR.");
     } finally {

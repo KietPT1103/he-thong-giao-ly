@@ -3,7 +3,6 @@ import {
     confirmPassword,
     getCsrfCookie,
     login,
-    mfaChallenge,
     logout,
     me,
 } from "../api/auth";
@@ -43,21 +42,9 @@ export const useAuthStore = defineStore("auth", {
             try {
                 await getCsrfCookie();
                 const response = await login(email, password);
-                if (response.status === 202 || response.data.code === "MFA_REQUIRED") {
-                    return "mfa_required" as const;
-                }
                 this.user = response.data.data;
                 this.initialized = true;
                 return "authenticated" as const;
-            } finally {
-                this.isSubmitting = false;
-            }
-        },
-        async completeMfa(code: string) {
-            this.isSubmitting = true;
-            try {
-                this.user = (await mfaChallenge(code)).data.data;
-                this.initialized = true;
             } finally {
                 this.isSubmitting = false;
             }

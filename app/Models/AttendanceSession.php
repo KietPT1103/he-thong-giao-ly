@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class AttendanceSession extends Model
 {
-    protected $fillable = ['catechism_class_id', 'held_at', 'qr_expires_at', 'taken_by', 'note'];
+    protected $fillable = ['catechism_class_id', 'held_at', 'qr_expires_at', 'status', 'started_at', 'ended_at', 'taken_by', 'note'];
 
     protected function casts(): array
     {
-        return ['held_at' => 'datetime', 'qr_expires_at' => 'datetime'];
+        return ['held_at' => 'datetime', 'qr_expires_at' => 'datetime', 'started_at' => 'datetime', 'ended_at' => 'datetime'];
     }
 
     public function catechismClass()

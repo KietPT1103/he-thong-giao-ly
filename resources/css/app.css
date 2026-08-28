@@ -64,6 +64,9 @@ body.navigation-open {
     max-width: 80rem;
     overflow-wrap: anywhere;
 }
+.app-content.app-content--full {
+    max-width: none;
+}
 .app-content > * {
     min-width: 0;
 }

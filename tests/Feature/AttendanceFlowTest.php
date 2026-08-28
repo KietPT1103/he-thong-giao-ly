@@ -66,4 +66,39 @@ class AttendanceFlowTest extends TestCase
             'attendances' => [['child_id' => $child->id, 'status' => 'invented']],
         ])->assertUnprocessable();
     }
+
+    public function test_teacher_attendance_workspace_bootstraps_the_selected_class_in_one_request(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+
+        $this->actingAs($teacher)->getJson("/api/teacher/attendance-workspace?class_id={$class->id}")
+            ->assertOk()
+            ->assertJsonPath('data.selected_class_id', $class->id)
+            ->assertJsonFragment(['id' => $class->id, 'name' => $class->name, 'code' => $class->code])
+            ->assertJsonStructure(['data' => ['classes', 'sessions' => ['data', 'total'], 'children']]);
+    }
+
+    public function test_teacher_attendance_workspace_only_returns_the_active_session(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $class->attendanceSessions()->update(['status' => 'ended']);
+        $active = $class->attendanceSessions()->create([
+            'held_at' => now()->addMinute(),
+            'started_at' => now(),
+            'status' => 'active',
+            'taken_by' => $teacher->id,
+        ]);
+        $historyTotal = $class->attendanceSessions()->count();
+
+        $response = $this->actingAs($teacher)
+            ->getJson("/api/teacher/attendance-workspace?class_id={$class->id}")
+            ->assertOk();
+
+        $this->assertSame([$active->id], collect($response->json('data.sessions.data'))->pluck('id')->all());
+        $response
+            ->assertJsonPath('data.sessions.total', 1)
+            ->assertJsonPath('data.session_history_total', $historyTotal);
+    }
 }

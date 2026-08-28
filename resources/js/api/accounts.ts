@@ -21,10 +21,3 @@ export const updateAccountAccess = (id: number, data: { role: string; granted_pe
 export const resetAccountPassword = (id: number, password: string, passwordConfirmation: string) => client.put<ApiResponse<null>>(`/admin/accounts/${id}/password`, { password, password_confirmation: passwordConfirmation });
 export const archiveAccount = (id: number) => client.delete<ApiResponse<null>>(`/admin/accounts/${id}`);
 export const restoreAccount = (id: number) => client.post<ApiResponse<User>>(`/admin/accounts/${id}/restore`);
-export interface MfaStatus { enabled: boolean; confirmed_at: string | null }
-export interface MfaSetup { secret: string; otpauth_uri: string }
-export const getMfaStatus = () => client.get<ApiResponse<MfaStatus>>("/account/mfa");
-export const setupMfa = () => client.post<ApiResponse<MfaSetup>>("/account/mfa/setup");
-export const confirmMfa = (code: string) => client.post<ApiResponse<{ recovery_codes: string[] }>>("/account/mfa/confirm", { code });
-export const disableMfa = () => client.delete<ApiResponse<null>>("/account/mfa");
-export const regenerateMfaRecoveryCodes = () => client.post<ApiResponse<{ recovery_codes: string[] }>>("/account/mfa/recovery-codes");
