@@ -45,7 +45,7 @@ class AttendanceController extends ApiController
                 'id' => $child->id,
                 'user_id' => $child->user_id,
                 'email' => $child->user?->email,
-                'avatar_url' => $child->user?->avatar_path ? '/storage/'.ltrim($child->user->avatar_path, '/') : null,
+                'avatar_url' => $child->user?->avatarUrl(),
                 'code' => $child->code,
                 'full_name' => $child->full_name,
                 'saint_name' => $child->saint_name,

@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -79,5 +80,25 @@ class User extends Authenticatable
     public function child()
     {
         return $this->hasOne(Child::class);
+    }
+
+    public function avatarImage(): HasOne
+    {
+        return $this->hasOne(UserAvatar::class);
+    }
+
+    public function avatarUrl(): ?string
+    {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->avatar_path, 'database:')) {
+            $version = substr($this->avatar_path, strlen('database:'));
+
+            return "/api/avatars/{$this->getKey()}?v=".rawurlencode($version);
+        }
+
+        return '/storage/'.ltrim($this->avatar_path, '/');
     }
 }

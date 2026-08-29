@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 import AAlert from "ant-design-vue/es/alert";
 import AButton from "ant-design-vue/es/button";
 import ACard from "ant-design-vue/es/card";
@@ -16,10 +16,12 @@ import { vietnamesePhoneRule } from "../utils/phoneValidation";
 const auth = useAuthStore();
 const form = reactive({ name: "", email: "", phone: "" });
 const loading = ref(true), saving = ref(false), avatarUploading = ref(false), error = ref("");
+const avatarFailed = ref(false);
 const roleLabels: Record<string, string> = { admin: "Quản trị viên", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" };
 const profileRules = { phone: [vietnamesePhoneRule()] };
 const displayRole = (role: string) => roleLabels[role] ?? role;
 const apiMessage = (e: unknown, fallback: string) => (e as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback;
+watch(() => auth.user?.avatar_url, () => { avatarFailed.value = false; });
 
 async function load() {
     loading.value = true;
@@ -52,7 +54,7 @@ onMounted(load);
                 <ACard :bordered="false" class="account-card profile-summary-card">
                     <div class="profile-summary">
                         <div class="profile-avatar-wrap">
-                            <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="Ảnh đại diện" class="profile-avatar object-cover" />
+                            <img v-if="auth.user?.avatar_url && !avatarFailed" :src="auth.user.avatar_url" alt="Ảnh đại diện" class="profile-avatar object-cover" @error="avatarFailed = true" />
                             <div v-else class="profile-avatar grid place-items-center bg-blue-50 text-primary-700"><UserRound class="size-10" /></div>
                             <label class="avatar-upload-control" :class="avatarUploading ? 'pointer-events-none opacity-70' : ''" title="Đổi ảnh đại diện">
                                 <LoaderCircle v-if="avatarUploading" class="size-4 animate-spin" />

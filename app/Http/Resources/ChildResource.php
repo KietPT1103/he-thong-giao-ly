@@ -15,9 +15,7 @@ class ChildResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'email' => $this->relationLoaded('user') ? $this->user?->email : null,
-            'avatar_url' => $this->relationLoaded('user') && $this->user?->avatar_path
-                ? '/storage/'.ltrim($this->user->avatar_path, '/')
-                : null,
+            'avatar_url' => $this->relationLoaded('user') ? $this->user?->avatarUrl() : null,
             'code' => $this->code,
             'full_name' => $this->full_name,
             'saint_name' => $this->saint_name,

@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\Parish;
 use App\Models\TeacherProfile;
 use App\Models\User;
+use App\Models\UserAvatar;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
@@ -67,7 +69,7 @@ class AccountManagementTest extends TestCase
             ->assertJsonValidationErrors('password');
     }
 
-    public function test_avatar_upload_rejects_non_images_and_stores_valid_images(): void
+    public function test_avatar_upload_rejects_non_images_and_stores_valid_images_in_shared_storage(): void
     {
         Storage::fake('public');
         $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
@@ -80,7 +82,40 @@ class AccountManagementTest extends TestCase
             'avatar' => UploadedFile::fake()->image('avatar.webp', 300, 300)->size(200),
         ])->assertOk();
 
-        Storage::disk('public')->assertExists($response->json('data.avatar_path'));
+        $this->assertStringStartsWith('database:', $response->json('data.avatar_path'));
+        $this->assertDatabaseHas('user_avatars', [
+            'user_id' => $teacher->id,
+            'mime_type' => 'image/webp',
+        ]);
+        $this->assertSame(1, UserAvatar::where('user_id', $teacher->id)->count());
+    }
+
+    public function test_uploaded_avatar_survives_logout_and_login_on_another_instance(): void
+    {
+        Storage::fake('public');
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+
+        $upload = $this->actingAs($teacher, 'web')->postJson('/api/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('avatar.jpg', 300, 300)->size(200),
+        ])->assertOk();
+
+        Storage::disk('public')->deleteDirectory('avatars');
+
+        $this->postJson('/api/auth/logout')->assertOk();
+        Auth::forgetGuards();
+        Auth::shouldUse('web');
+        $login = $this->postJson('/api/auth/login', [
+            'email' => 'teacher@giaoly.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $avatarUrl = $login->json('data.avatar_url');
+
+        $this->assertSame("/api/avatars/{$teacher->id}", strtok($avatarUrl, '?'));
+        $this->assertSame($upload->json('data.avatar_url'), $avatarUrl);
+        $this->get($avatarUrl)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg');
     }
 
     public function test_profile_returns_a_same_origin_avatar_url(): void

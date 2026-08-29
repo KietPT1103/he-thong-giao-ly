@@ -75,9 +75,7 @@ class TeacherController extends ApiController
                     'saint_name' => $child->saint_name,
                     'date_of_birth' => $child->date_of_birth?->toDateString(),
                     'status' => $child->status,
-                    'avatar_url' => $child->user?->avatar_path
-                        ? '/storage/'.ltrim($child->user->avatar_path, '/')
-                        : null,
+                    'avatar_url' => $child->user?->avatarUrl(),
                     'class' => [
                         'id' => $enrollment->catechismClass->id,
                         'name' => $enrollment->catechismClass->name,

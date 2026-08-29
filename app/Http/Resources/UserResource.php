@@ -14,7 +14,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'avatar_url' => $this->avatar_path ? '/storage/'.ltrim($this->avatar_path, '/') : null,
+            'avatar_url' => $this->avatarUrl(),
             'avatar_path' => $this->avatar_path,
             'status' => $this->status,
             'roles' => $this->getRoleNames()->values(),

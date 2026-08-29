@@ -42,6 +42,7 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('account', [AccountController::class, 'show']);
     Route::patch('account', [AccountController::class, 'update']);
     Route::post('account/avatar', [AccountController::class, 'avatar'])->middleware('throttle:upload');
+    Route::get('avatars/{user}', [AccountController::class, 'avatarFile']);
 
     Route::prefix('child-device')->middleware('can:check-in-attendance-qr')->group(function () {
         Route::get('/', [ChildDeviceController::class, 'show']);

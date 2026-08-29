@@ -216,9 +216,7 @@ class TeacherClassController extends ApiController
                     'saint_name' => $child->saint_name,
                     'date_of_birth' => $child->date_of_birth?->toDateString(),
                     'status' => $child->status,
-                    'avatar_url' => $child->user?->avatar_path
-                        ? '/storage/'.ltrim($child->user->avatar_path, '/')
-                        : null,
+                    'avatar_url' => $child->user?->avatarUrl(),
                     'current_class' => $currentClass ? $currentClass->only(['id', 'name', 'code']) : null,
                 ];
             })->values(),

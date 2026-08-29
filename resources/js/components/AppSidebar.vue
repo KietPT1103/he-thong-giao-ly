@@ -2,6 +2,7 @@
 import { computed, ref, watch, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
+import UserAvatar from "./UserAvatar.vue";
 import {
     Bell, BookOpen, CalendarDays, CheckSquare, ChevronDown,
     Church, CircleHelp, ClipboardList, Gift, GraduationCap,
@@ -62,7 +63,6 @@ const navigationByRole: Record<string, NavItem[]> = {
     ],
 };
 const navigation = computed(() => (navigationByRole[role.value] ?? []).filter((item) => !item.permission || auth.hasPermission(item.permission)));
-const initials = computed(() => auth.user?.name.split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase() ?? "U");
 watch(() => route.fullPath, () => { userMenuOpen.value = false; });
 async function signOut() { await auth.logout(); await router.push("/login"); }
 </script>
@@ -83,8 +83,7 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
         </nav>
         <div class="sidebar-profile relative mt-4 pt-4">
             <button class="sidebar-profile-trigger flex w-full items-center gap-3 rounded-xl p-2 text-left" aria-controls="sidebar-user-menu" :aria-expanded="userMenuOpen" @click="userMenuOpen = !userMenuOpen">
-                <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="" class="size-10 rounded-full object-cover" />
-                <span v-else class="sidebar-avatar grid size-10 shrink-0 place-items-center rounded-full text-xs font-bold">{{ initials }}</span>
+                <UserAvatar :name="auth.user?.name ?? ''" :avatar-url="auth.user?.avatar_url" />
                 <span class="min-w-0 flex-1"><b class="block truncate text-xs">{{ auth.user?.name }}</b><small class="sidebar-role-label block truncate text-[10px]">{{ roleLabel }}</small></span>
                 <ChevronDown class="sidebar-profile-chevron size-4 shrink-0 transition-transform duration-300 ease-out" :class="userMenuOpen ? 'rotate-180' : 'rotate-0'" />
             </button>
@@ -121,7 +120,6 @@ async function signOut() { await auth.logout(); await router.push("/login"); }
 .sidebar-profile{border-top:1px solid rgba(250,249,245,.1)}
 .sidebar-profile-trigger{border:1px solid transparent;color:#faf9f5;transition:background-color .18s ease,border-color .18s ease}
 .sidebar-profile-trigger:hover{border-color:rgba(250,249,245,.09);background:rgba(250,249,245,.06)}
-.sidebar-avatar{background:#f0eee6;color:#0b214d}
 .sidebar-role-label,.sidebar-profile-chevron{color:#9fb4d4}
 .menu-action{display:flex;width:100%;min-height:2.5rem;align-items:center;gap:.65rem;border-radius:.5rem;padding:.6rem .7rem;color:#292927;font-size:.75rem;text-align:left;transition:background-color .16s ease,color .16s ease}.menu-action:hover:not(:disabled){background:#f0eee6;color:#141413}.menu-action:disabled{color:#87867f;opacity:.62}.menu-action.is-danger{color:#b44f35}.menu-action.is-danger:hover:not(:disabled){background:#f8e9e3;color:#8f3824}.menu-action :deep(svg){width:1rem;height:1rem}
 .sidebar-menu-divider{border-top:1px solid #e3dacc}
