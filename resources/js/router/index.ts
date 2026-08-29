@@ -52,6 +52,11 @@ const routes: RouteRecordRaw[] = [
         meta: { public: true, title: "Đăng nhập" },
     },
     {
+        path: "/register",
+        component: LoginView,
+        meta: { public: true, title: "Đăng ký" },
+    },
+    {
         path: "/news",
         component: ModulePendingView,
         meta: { public: true, title: "Tin tức" },
@@ -234,7 +239,7 @@ router.beforeEach(async (to) => {
     if (!auth.initialized) await auth.initialize();
     if (to.meta.requiresAuth && !auth.isAuthenticated)
         return { path: "/login", query: { redirect: to.fullPath } };
-    if (to.path === "/login" && auth.isAuthenticated)
+    if (["/login", "/register"].includes(to.path) && auth.isAuthenticated)
         return dashboardFor(auth.roles);
     if (
         to.meta.roles?.length &&

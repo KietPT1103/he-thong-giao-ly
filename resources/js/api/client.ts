@@ -17,7 +17,7 @@ client.interceptors.response.use(
             error.response?.status === 401 &&
             error.config?.url !== "/auth/me" &&
             !isDeviceCheckIn &&
-            location.pathname !== "/login"
+            !["/login", "/register"].includes(location.pathname)
         ) {
             window.dispatchEvent(
                 new CustomEvent("auth:expired", {

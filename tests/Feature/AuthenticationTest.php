@@ -19,6 +19,73 @@ class AuthenticationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    public function test_parent_can_register_with_a_required_phone_number(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'Nguyễn Văn Phụ Huynh',
+            'email' => 'new-parent@example.test',
+            'phone' => '0912345678',
+            'role' => 'parent',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.email', 'new-parent@example.test')
+            ->assertJsonPath('data.phone', '0912345678')
+            ->assertJsonPath('data.roles.0', 'parent');
+
+        $user = User::where('email', 'new-parent@example.test')->firstOrFail();
+        $this->assertTrue($user->hasRole('parent'));
+        $this->assertDatabaseHas('parent_profiles', [
+            'user_id' => $user->id,
+            'phone' => '0912345678',
+        ]);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_child_can_register_and_receives_a_child_profile(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'name' => 'Nguyễn Thiếu Nhi',
+            'email' => 'new-child@example.test',
+            'phone' => '0987654321',
+            'role' => 'child',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ])->assertCreated()->assertJsonPath('data.roles.0', 'child');
+
+        $user = User::where('email', 'new-child@example.test')->firstOrFail();
+        $this->assertTrue($user->hasRole('child'));
+        $this->assertDatabaseHas('children', [
+            'user_id' => $user->id,
+            'code' => 'TN-U'.$user->id,
+            'full_name' => 'Nguyễn Thiếu Nhi',
+        ]);
+    }
+
+    public function test_registration_rejects_a_missing_phone_and_disallowed_roles(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'name' => 'Không Điện Thoại',
+            'email' => 'missing-phone@example.test',
+            'role' => 'parent',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['phone']);
+
+        $this->postJson('/api/auth/register', [
+            'name' => 'Không Được Làm Giáo Lý Viên',
+            'email' => 'teacher-register@example.test',
+            'phone' => '0901234567',
+            'role' => 'teacher',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['role']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'teacher-register@example.test']);
+    }
+
     public function test_demo_teacher_can_login_read_session_and_logout(): void
     {
         $login = $this->postJson('/api/auth/login', [

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\TeacherController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->middleware('web')->group(function () {
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:6,1');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:6,1');
     Route::post('reset-password', [AuthController::class, 'reset'])->middleware('throttle:6,1');

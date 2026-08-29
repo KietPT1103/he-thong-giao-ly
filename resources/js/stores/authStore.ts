@@ -5,6 +5,8 @@ import {
     login,
     logout,
     me,
+    register as registerAccount,
+    type RegisterPayload,
 } from "../api/auth";
 import type { User } from "../types/api";
 
@@ -42,6 +44,18 @@ export const useAuthStore = defineStore("auth", {
             try {
                 await getCsrfCookie();
                 const response = await login(email, password);
+                this.user = response.data.data;
+                this.initialized = true;
+                return "authenticated" as const;
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+        async register(payload: RegisterPayload) {
+            this.isSubmitting = true;
+            try {
+                await getCsrfCookie();
+                const response = await registerAccount(payload);
                 this.user = response.data.data;
                 this.initialized = true;
                 return "authenticated" as const;

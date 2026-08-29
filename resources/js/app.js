@@ -15,7 +15,7 @@ window.addEventListener('auth:expired', async () => {
     toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
 
     const currentPath = router.currentRoute.value.fullPath;
-    if (router.currentRoute.value.path !== '/login') {
+    if (!['/login', '/register'].includes(router.currentRoute.value.path)) {
         await router.replace({
             path: '/login',
             query: { redirect: currentPath, reason: 'expired' },

@@ -4,29 +4,85 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserStatus;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Child;
+use App\Models\ParentProfile;
+use App\Models\Parish;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use App\Services\AuditLogger;
 
 class AuthController extends ApiController
 {
+    public function register(RegisterRequest $request, AuditLogger $audit)
+    {
+        $data = $request->validated();
+        $parishId = Parish::query()->value('id');
+
+        if (! $parishId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hệ thống chưa được cấu hình giáo xứ. Vui lòng liên hệ quản trị viên.',
+                'code' => 'PARISH_CONFIGURATION_REQUIRED',
+            ], 409);
+        }
+
+        $user = DB::transaction(function () use ($data, $parishId): User {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'password' => $data['password'],
+            ]);
+
+            $user->assignRole($data['role']);
+
+            if ($data['role'] === 'parent') {
+                ParentProfile::create([
+                    'user_id' => $user->id,
+                    'parish_id' => $parishId,
+                    'phone' => $data['phone'],
+                ]);
+            } else {
+                Child::create([
+                    'user_id' => $user->id,
+                    'parish_id' => $parishId,
+                    'code' => 'TN-U'.$user->id,
+                    'full_name' => $user->name,
+                ]);
+            }
+
+            return $user;
+        });
+
+        Auth::login($user, false);
+        $request->session()->regenerate();
+        $request->session()->put('auth.login_at', now()->timestamp);
+        $user->update(['last_login_at' => now()]);
+        $audit->record($request, 'auth.registered', $user, null, ['role' => $data['role']]);
+
+        return $this->success(new UserResource($user), 'Đăng ký tài khoản thành công', status: 201);
+    }
+
     public function login(LoginRequest $request, AuditLogger $audit)
     {
         $user = User::where('email', $request->string('email'))->first();
 
         if (! $user || ! Hash::check($request->string('password'), $user->password)) {
             $audit->record($request, 'auth.login_failed', $user, null, ['email' => $request->string('email')->toString()]);
+
             return response()->json(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng.'], 422);
         }
 
         if ($user->status === UserStatus::Blocked->value) {
             $audit->record($request, 'auth.login_blocked', $user);
+
             return response()->json(['success' => false, 'message' => 'Tài khoản đã bị khóa.'], 403);
         }
 
@@ -61,6 +117,7 @@ class AuthController extends ApiController
 
         if (! Hash::check($request->string('password'), $request->user()->password)) {
             $audit->record($request, 'auth.password_confirmation_failed', $request->user());
+
             return response()->json(['success' => false, 'message' => 'Mật khẩu không đúng.'], 422);
         }
 

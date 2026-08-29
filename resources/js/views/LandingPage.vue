@@ -319,9 +319,9 @@ function onKey(event: KeyboardEvent) {
                     alt="Nhà thờ Giáo xứ Cái Răng"
                 />
                 <img
-                    class="hero-children"
-                    :src="'/images/02_individual_assets/hero-children-group.png'"
-                    alt="Các em thiếu nhi giáo lý"
+                    class="hero-presenter"
+                    :src="'/images/02_individual_assets/hero-catechism-child-real.png'"
+                    alt="Thiếu nhi giới thiệu Hành Trang Đức Tin"
                 />
                 <div class="page-width hero-grid">
                     <div class="hero-copy">
@@ -2095,14 +2095,18 @@ footer {
 
 /* Supplied production artwork */
 .brand-mark {
+    position: relative;
     overflow: hidden;
     background: transparent;
 }
 .brand-mark img {
-    width: 62px;
-    height: 62px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 140px;
+    height: auto;
     max-width: none;
-    object-fit: contain;
+    transform: translate(-50%, calc(-50% + 4px));
 }
 .footer-brand > img {
     width: 44px;
@@ -2115,6 +2119,34 @@ footer {
     z-index: 1;
     pointer-events: none;
     object-fit: contain;
+}
+.hero-presenter {
+    position: absolute;
+    z-index: 2;
+    bottom: 0;
+    left: clamp(-100px, calc((100vw - 1200px) * 0.25 - 100px), 100px);
+    width: auto;
+    height: min(390px, 100%);
+    max-width: none;
+    pointer-events: none;
+    object-fit: contain;
+    object-position: center bottom;
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+    .hero-presenter {
+        left: clamp(-80px, calc((100vw - 1440px) * 0.333), 40px);
+        height: 330px;
+    }
+}
+@media (min-width: 1600px) {
+    .hero-grid {
+        transform: translateX(
+            clamp(0px, calc((100vw - 1600px) * 0.3125), 100px)
+        );
+    }
+    .hero-presenter {
+        left: calc((100vw - 1400px) / 2 - 60px);
+    }
 }
 .dashboard-preview > img {
     display: block;
@@ -2204,6 +2236,12 @@ footer {
         bottom: -105px;
         width: 500px;
     }
+    .hero-presenter {
+        display: none;
+        right: -20px;
+        left: auto;
+        height: 300px;
+    }
 }
 
 @media (max-width: 640px) {
@@ -2216,6 +2254,10 @@ footer {
         right: -105px;
         bottom: -90px;
         width: 430px;
+    }
+    .hero-presenter {
+        right: -45px;
+        height: 260px;
     }
     .stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2363,6 +2405,11 @@ footer {
         left: -35px;
         bottom: -215px;
         width: 590px;
+    }
+    .hero-presenter {
+        display: none;
+        left: -80px;
+        height: 300px;
     }
     .dashboard-preview {
         height: 380px;
@@ -2760,6 +2807,10 @@ footer {
         flex: 1;
         padding-inline: 10px;
         white-space: nowrap;
+    }
+    .hero-presenter {
+        right: -55px;
+        height: 230px;
     }
     .stats-grid {
         width: calc(100% - 28px);
