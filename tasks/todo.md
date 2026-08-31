@@ -16,7 +16,7 @@
 - [x] Task 3: CRUD ngân hàng câu hỏi
   - Acceptance: phạm vi personal/parish; người khác không sửa bản gốc.
   - Verify: question-bank API tests.
-- [ ] Task 4: Tạo, sửa, list và xem bài nháp
+- [x] Task 4: Tạo, sửa, list và xem bài nháp
   - Acceptance: 5 dạng câu, hybrid, validation và optimistic conflict.
   - Verify: assignment authoring tests.
 - [ ] Task 5: Phát hành và snapshot người nhận/câu hỏi

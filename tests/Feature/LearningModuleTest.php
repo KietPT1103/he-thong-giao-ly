@@ -215,4 +215,91 @@ class LearningModuleTest extends TestCase
             ],
         ])->assertUnprocessable()->assertJsonValidationErrors('options');
     }
+
+    public function test_primary_teacher_can_create_list_show_and_update_a_hybrid_assignment(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+
+        $assignment = $this->actingAs($teacher)->postJson(
+            '/api/teacher/assignments',
+            $this->validAssignmentPayload($class->id),
+        )->assertCreated()
+            ->assertJsonPath('data.title', 'Ôn tập Đức Tin')
+            ->assertJsonCount(2, 'data.questions')
+            ->assertJsonCount(1, 'data.targets')
+            ->json('data');
+
+        $this->actingAs($teacher)->getJson('/api/teacher/assignments?status=draft')
+            ->assertOk()->assertJsonPath('data.data.0.id', $assignment['id']);
+        $this->actingAs($teacher)->getJson("/api/teacher/assignments/{$assignment['id']}")
+            ->assertOk()->assertJsonPath('data.questions.1.type', 'essay');
+
+        $updated = $this->validAssignmentPayload($class->id);
+        $updated['title'] = 'Ôn tập Đức Tin — đã chỉnh sửa';
+        $updated['version'] = $assignment['version'];
+        $this->actingAs($teacher)->patchJson("/api/teacher/assignments/{$assignment['id']}", $updated)
+            ->assertOk()
+            ->assertJsonPath('data.title', $updated['title'])
+            ->assertJsonPath('data.version', $assignment['version'] + 1);
+
+        $this->actingAs($teacher)->patchJson("/api/teacher/assignments/{$assignment['id']}", $updated)
+            ->assertStatus(409)->assertJsonPath('code', 'VERSION_CONFLICT');
+    }
+
+    public function test_teacher_cannot_target_a_class_they_are_not_assigned_to(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $outsider = User::factory()->create();
+        $outsider->assignRole('teacher');
+        TeacherProfile::create([
+            'user_id' => $outsider->id,
+            'parish_id' => $teacher->teacherProfile->parish_id,
+            'code' => 'GLV-KHONG-LOP',
+        ]);
+
+        $this->actingAs($outsider)->postJson('/api/teacher/assignments', $this->validAssignmentPayload($class->id))
+            ->assertUnprocessable()->assertJsonPath('code', 'CLASS_NOT_ASSIGNED');
+    }
+
+    private function validAssignmentPayload(int $classId): array
+    {
+        return [
+            'title' => 'Ôn tập Đức Tin',
+            'description' => 'Hoàn thành các câu hỏi trước giờ học Chúa nhật.',
+            'type' => 'hybrid',
+            'max_score' => 10,
+            'passing_score' => 5,
+            'opens_at' => now()->addHour()->toIso8601String(),
+            'due_at' => now()->addWeek()->toIso8601String(),
+            'time_limit_minutes' => 30,
+            'allowed_attempts' => 2,
+            'score_method' => 'highest',
+            'allow_resume' => true,
+            'allow_late' => false,
+            'late_penalty_percent' => 0,
+            'shuffle_questions' => true,
+            'shuffle_options' => true,
+            'allow_backtracking' => true,
+            'result_release_mode' => 'manual',
+            'show_answers' => true,
+            'targets' => [['catechism_class_id' => $classId, 'child_ids' => []]],
+            'questions' => [
+                [
+                    'type' => 'single_choice', 'prompt' => 'Ai dựng nên trời đất?',
+                    'points' => 4, 'position' => 1,
+                    'options' => [
+                        ['content' => 'Thiên Chúa', 'is_correct' => true],
+                        ['content' => 'Con người', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'type' => 'essay', 'prompt' => 'Em sống đức tin như thế nào?',
+                    'points' => 6, 'position' => 2,
+                    'rubric' => [['label' => 'Nội dung', 'points' => 6]],
+                ],
+            ],
+        ];
+    }
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChildDeviceController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\QrAttendanceController;
+use App\Http\Controllers\Api\TeacherAssignmentController;
 use App\Http\Controllers\Api\TeacherClassController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TeacherQuestionBankController;
@@ -132,6 +133,7 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::apiResource('teacher/question-bank', TeacherQuestionBankController::class)
         ->parameters(['question-bank' => 'question'])
         ->except(['show']);
+    Route::apiResource('teacher/assignments', TeacherAssignmentController::class);
     Route::prefix('teacher/classes')->group(function () {
         Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');
         Route::get('{class}/workspace', [TeacherClassController::class, 'workspace'])->middleware('can:view-classes');
