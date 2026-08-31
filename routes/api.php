@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\AdminParishController;
 use App\Http\Controllers\Api\AdminTeacherController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChildAssignmentController;
 use App\Http\Controllers\Api\ChildDeviceController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\QrAttendanceController;
@@ -135,6 +136,10 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
         ->except(['show']);
     Route::post('teacher/assignments/{assignment}/publish', [TeacherAssignmentController::class, 'publish']);
     Route::apiResource('teacher/assignments', TeacherAssignmentController::class);
+    Route::get('child/assignments', [ChildAssignmentController::class, 'index']);
+    Route::get('child/assignments/{assignment}', [ChildAssignmentController::class, 'show']);
+    Route::post('child/assignments/{assignment}/attempts', [ChildAssignmentController::class, 'start']);
+    Route::patch('child/submissions/{submission}/answers', [ChildAssignmentController::class, 'saveAnswers']);
     Route::prefix('teacher/classes')->group(function () {
         Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');
         Route::get('{class}/workspace', [TeacherClassController::class, 'workspace'])->middleware('can:view-classes');

@@ -290,6 +290,48 @@ class LearningModuleTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'ASSIGNMENT_ALREADY_PUBLISHED');
     }
 
+    public function test_recipient_child_can_start_resume_and_autosave_without_seeing_answers(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $assignmentId = $this->actingAs($teacher)->postJson(
+            '/api/teacher/assignments', $this->validAssignmentPayload($class->id),
+        )->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+
+        $this->actingAs($child)->getJson("/api/child/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.questions.0.options.0.is_correct')
+            ->assertJsonMissingPath('data.questions.0.explanation');
+        $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertUnprocessable()->assertJsonPath('code', 'ASSIGNMENT_NOT_OPEN');
+
+        $assignment = Assignment::findOrFail($assignmentId);
+        $assignment->update(['opens_at' => now()->subMinute(), 'status' => Assignment::STATUS_PUBLISHED]);
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()
+            ->assertJsonPath('data.attempt_number', 1)
+            ->assertJsonPath('data.version', 1)
+            ->json('data');
+        $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertOk()->assertJsonPath('data.id', $submission['id']);
+
+        $questionId = $assignment->questions()->orderBy('position')->value('id');
+        $saved = $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1,
+            'answers' => [['question_id' => $questionId, 'answer' => ['selected' => [0]]]],
+        ])->assertOk()->assertJsonPath('data.version', 2)->json('data');
+        $this->assertDatabaseHas('submission_answers', [
+            'submission_id' => $submission['id'], 'assignment_question_id' => $questionId,
+        ]);
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1,
+            'answers' => [['question_id' => $questionId, 'answer' => ['selected' => [1]]]],
+        ])->assertStatus(409)->assertJsonPath('code', 'VERSION_CONFLICT');
+        $this->assertSame(2, $saved['version']);
+    }
+
     private function validAssignmentPayload(int $classId): array
     {
         return [

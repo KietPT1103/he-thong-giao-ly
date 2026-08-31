@@ -25,7 +25,7 @@
 
 ## Phase 3 — Attempts and grading
 
-- [ ] Task 6: Bắt đầu lượt và tự lưu câu trả lời
+- [x] Task 6: Bắt đầu lượt và tự lưu câu trả lời
   - Acceptance: giới hạn lượt, thời gian, quyền người nhận và version.
   - Verify: attempt/autosave tests.
 - [ ] Task 7: Nộp và chấm tự động
