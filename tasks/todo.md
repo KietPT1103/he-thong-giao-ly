@@ -13,7 +13,7 @@
 
 ## Phase 2 — Authoring and publishing
 
-- [ ] Task 3: CRUD ngân hàng câu hỏi
+- [x] Task 3: CRUD ngân hàng câu hỏi
   - Acceptance: phạm vi personal/parish; người khác không sửa bản gốc.
   - Verify: question-bank API tests.
 - [ ] Task 4: Tạo, sửa, list và xem bài nháp

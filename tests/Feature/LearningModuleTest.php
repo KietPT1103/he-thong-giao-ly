@@ -152,4 +152,67 @@ class LearningModuleTest extends TestCase
         $this->assertTrue(Gate::forUser($teacher)->allows('grade', $submission));
         $this->assertFalse(Gate::forUser($otherChildUser)->allows('view', $submission));
     }
+
+    public function test_teacher_can_manage_personal_and_parish_question_bank_items(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $assistant = User::factory()->create();
+        $assistant->assignRole('teacher');
+        TeacherProfile::create([
+            'user_id' => $assistant->id,
+            'parish_id' => $teacher->teacherProfile->parish_id,
+            'code' => 'GLV-NHCH',
+        ]);
+
+        $shared = $this->actingAs($teacher)->postJson('/api/teacher/question-bank', [
+            'scope' => 'parish',
+            'type' => 'single_choice',
+            'prompt' => 'Kinh Tin Kính bắt đầu bằng lời nào?',
+            'default_points' => 2,
+            'difficulty' => 'easy',
+            'tags' => ['Kinh căn bản'],
+            'options' => [
+                ['content' => 'Tôi tin kính', 'is_correct' => true],
+                ['content' => 'Lạy Cha chúng con', 'is_correct' => false],
+            ],
+        ])->assertCreated()->assertJsonPath('data.scope', 'parish')->json('data');
+
+        $personal = $this->actingAs($teacher)->postJson('/api/teacher/question-bank', [
+            'scope' => 'personal',
+            'type' => 'essay',
+            'prompt' => 'Em hãy trình bày ý nghĩa của đức tin.',
+            'default_points' => 5,
+            'difficulty' => 'medium',
+            'rubric' => [['label' => 'Nội dung', 'points' => 5]],
+        ])->assertCreated()->json('data');
+
+        $visibleIds = collect($this->actingAs($assistant)->getJson('/api/teacher/question-bank')
+            ->assertOk()->json('data.data'))->pluck('id');
+        $this->assertTrue($visibleIds->contains($shared['id']));
+        $this->assertFalse($visibleIds->contains($personal['id']));
+        $this->actingAs($assistant)->patchJson("/api/teacher/question-bank/{$shared['id']}", [
+            'scope' => 'parish', 'type' => 'essay', 'prompt' => 'Không được sửa',
+            'default_points' => 1, 'difficulty' => 'easy', 'version' => 1,
+        ])->assertForbidden();
+        $this->actingAs($teacher)->deleteJson("/api/teacher/question-bank/{$personal['id']}")
+            ->assertOk();
+        $this->assertSoftDeleted('question_bank_items', ['id' => $personal['id']]);
+    }
+
+    public function test_question_bank_rejects_an_invalid_auto_graded_question(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+
+        $this->actingAs($teacher)->postJson('/api/teacher/question-bank', [
+            'scope' => 'personal',
+            'type' => 'single_choice',
+            'prompt' => 'Câu hỏi thiếu đáp án đúng',
+            'default_points' => 1,
+            'difficulty' => 'easy',
+            'options' => [
+                ['content' => 'A', 'is_correct' => false],
+                ['content' => 'B', 'is_correct' => false],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors('options');
+    }
 }

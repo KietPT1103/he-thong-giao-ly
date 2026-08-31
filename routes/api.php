@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\QrAttendanceController;
 use App\Http\Controllers\Api\TeacherClassController;
 use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\Api\TeacherQuestionBankController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->middleware('web')->group(function () {
@@ -128,6 +129,9 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::get('teacher/attendance-workspace', [AttendanceController::class, 'workspace'])->middleware('can:view-attendance');
     Route::get('teachers/me/classes', [TeacherController::class, 'classes'])->middleware('can:view-classes');
     Route::get('teachers/me/children', [TeacherController::class, 'children'])->middleware('can:view-children');
+    Route::apiResource('teacher/question-bank', TeacherQuestionBankController::class)
+        ->parameters(['question-bank' => 'question'])
+        ->except(['show']);
     Route::prefix('teacher/classes')->group(function () {
         Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');
         Route::get('{class}/workspace', [TeacherClassController::class, 'workspace'])->middleware('can:view-classes');
