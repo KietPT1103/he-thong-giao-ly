@@ -263,6 +263,33 @@ class LearningModuleTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'CLASS_NOT_ASSIGNED');
     }
 
+    public function test_publishing_snapshots_active_recipients_and_preserves_history(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $assignmentId = $this->actingAs($teacher)->postJson(
+            '/api/teacher/assignments',
+            $this->validAssignmentPayload($class->id),
+        )->assertCreated()->json('data.id');
+        $activeEnrollmentIds = $class->activeEnrollments()->pluck('id');
+
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'scheduled')
+            ->assertJsonPath('data.recipients_count', $activeEnrollmentIds->count());
+
+        $this->assertDatabaseCount('assignment_recipients', $activeEnrollmentIds->count());
+        $this->assertEqualsCanonicalizing(
+            $activeEnrollmentIds->all(),
+            AssignmentRecipient::where('assignment_id', $assignmentId)->pluck('enrollment_id')->all(),
+        );
+
+        $class->activeEnrollments()->firstOrFail()->update(['status' => 'inactive']);
+        $this->assertSame($activeEnrollmentIds->count(), AssignmentRecipient::where('assignment_id', $assignmentId)->count());
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")
+            ->assertUnprocessable()->assertJsonPath('code', 'ASSIGNMENT_ALREADY_PUBLISHED');
+    }
+
     private function validAssignmentPayload(int $classId): array
     {
         return [

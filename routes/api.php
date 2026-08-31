@@ -133,6 +133,7 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::apiResource('teacher/question-bank', TeacherQuestionBankController::class)
         ->parameters(['question-bank' => 'question'])
         ->except(['show']);
+    Route::post('teacher/assignments/{assignment}/publish', [TeacherAssignmentController::class, 'publish']);
     Route::apiResource('teacher/assignments', TeacherAssignmentController::class);
     Route::prefix('teacher/classes')->group(function () {
         Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');

@@ -6,14 +6,19 @@ use App\Http\Requests\Learning\UpsertAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\Enrollment;
 use App\Models\QuestionBankItem;
+use App\Services\AssignmentLifecycleService;
 use App\Services\AuditLogger;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class TeacherAssignmentController extends ApiController
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly AssignmentLifecycleService $lifecycle,
+    ) {}
 
     public function index(Request $request)
     {
@@ -117,6 +122,28 @@ class TeacherAssignmentController extends ApiController
         $this->auditLogger->record($request, 'assignment.archived', $assignment);
 
         return $this->success(null, 'Đã lưu trữ bài tập.');
+    }
+
+    public function publish(Request $request, Assignment $assignment)
+    {
+        $this->authorize('update', $assignment);
+        try {
+            $published = $this->lifecycle->publish($request, $assignment);
+        } catch (DomainException $exception) {
+            $messages = [
+                'ASSIGNMENT_ALREADY_PUBLISHED' => 'Bài tập đã được phát hành.',
+                'ASSIGNMENT_INCOMPLETE' => 'Bài tập cần có câu hỏi và đối tượng nhận.',
+                'NO_ACTIVE_RECIPIENTS' => 'Không có Thiếu nhi đang học trong đối tượng đã chọn.',
+            ];
+
+            return response()->json([
+                'success' => false,
+                'message' => $messages[$exception->getMessage()] ?? 'Không thể phát hành bài tập.',
+                'code' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return $this->success($published, 'Đã phát hành bài tập.');
     }
 
     private function syncStructure(Request $request, Assignment $assignment, array $data): void

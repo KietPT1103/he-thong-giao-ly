@@ -19,7 +19,7 @@
 - [x] Task 4: Tạo, sửa, list và xem bài nháp
   - Acceptance: 5 dạng câu, hybrid, validation và optimistic conflict.
   - Verify: assignment authoring tests.
-- [ ] Task 5: Phát hành và snapshot người nhận/câu hỏi
+- [x] Task 5: Phát hành và snapshot người nhận/câu hỏi
   - Acceptance: chỉ lớp phụ trách; cá nhân phải thuộc lớp; lịch sử bất biến.
   - Verify: publish/security tests.
 
