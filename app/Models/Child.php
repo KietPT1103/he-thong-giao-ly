@@ -59,4 +59,14 @@ class Child extends Model
     {
         return $this->hasMany(LeaveRequest::class);
     }
+
+    public function assignmentRecipients()
+    {
+        return $this->hasMany(AssignmentRecipient::class);
+    }
+
+    public function submissions()
+    {
+        return $this->hasMany(Submission::class);
+    }
 }

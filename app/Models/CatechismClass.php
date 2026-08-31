@@ -67,4 +67,14 @@ class CatechismClass extends Model
     {
         return $this->hasMany(AttendanceSession::class);
     }
+
+    public function assignmentTargets()
+    {
+        return $this->hasMany(AssignmentTarget::class);
+    }
+
+    public function announcementTargets()
+    {
+        return $this->hasMany(AnnouncementTarget::class);
+    }
 }

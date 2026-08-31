@@ -6,7 +6,7 @@
   - Acceptance: migration up/down được; role teacher/child/admin nhận đúng quyền.
   - Verify: focused migration/permission tests.
   - Files: migration schema, migration permission, seeder, feature test.
-- [ ] Task 2: Thêm model relationships và policy
+- [x] Task 2: Thêm model relationships và policy
   - Acceptance: assignment/question/submission/announcement scope đúng lớp.
   - Verify: policy abuse tests.
   - Files: models, policies, provider, feature test.
