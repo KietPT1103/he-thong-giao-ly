@@ -6,6 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Announcement extends Model
 {
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_SCHEDULED = 'scheduled';
+
+    public const STATUS_SENT = 'sent';
+
+    public const STATUS_EXPIRED = 'expired';
+
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const STATUS_WITHDRAWN = 'withdrawn';
+
     protected $fillable = [
         'parish_id', 'created_by', 'title', 'body', 'importance', 'status',
         'scheduled_at', 'sent_at', 'expires_at', 'withdrawn_at', 'is_pinned',

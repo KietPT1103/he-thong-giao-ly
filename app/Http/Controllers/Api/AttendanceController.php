@@ -6,8 +6,8 @@ use App\Http\Requests\Attendance\MarkAttendanceRequest;
 use App\Http\Requests\Attendance\StoreAttendanceSessionRequest;
 use App\Models\AttendanceSession;
 use App\Models\CatechismClass;
-use App\Services\AuditLogger;
 use App\Services\AttendanceService;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +67,9 @@ class AttendanceController extends ApiController
         $this->authorize('view', $class);
         $status = $request->string('status')->toString();
         $query = $class->attendanceSessions()->with('attendances')->latest('held_at');
-        if (in_array($status, ['active', 'ended', 'cancelled'], true)) $query->where('status', $status);
+        if (in_array($status, ['active', 'ended', 'cancelled'], true)) {
+            $query->where('status', $status);
+        }
 
         return $this->success($query->paginate()->withQueryString());
     }
@@ -91,16 +93,24 @@ class AttendanceController extends ApiController
                 'held_at' => $heldAt, 'started_at' => now(), 'status' => 'active',
                 'taken_by' => $request->user()->id, 'note' => $data['note'] ?? null,
             ]);
+
             return $this->success($session->load('attendances'), 'Đã mở phiên điểm danh.');
         });
     }
 
-    public function show(AttendanceSession $session) { $this->authorize('view', $session); return $this->success($session->load('attendances.child', 'catechismClass')); }
+    public function show(AttendanceSession $session)
+    {
+        $this->authorize('view', $session);
+
+        return $this->success($session->load('attendances.child', 'catechismClass'));
+    }
 
     public function mark(MarkAttendanceRequest $request, AttendanceSession $session, AttendanceService $service)
     {
         $this->authorize('update', $session);
-        if ($session->status !== 'active') return $this->inactiveSessionResponse();
+        if ($session->status !== 'active') {
+            return $this->inactiveSessionResponse();
+        }
 
         return $this->success($service->mark($session, $request->validated('attendances'), $request->user()->id), 'Đã lưu điểm danh.');
     }
@@ -108,7 +118,9 @@ class AttendanceController extends ApiController
     public function markAll(Request $request, AttendanceSession $session, AttendanceService $service)
     {
         $this->authorize('update', $session);
-        if ($session->status !== 'active') return $this->inactiveSessionResponse();
+        if ($session->status !== 'active') {
+            return $this->inactiveSessionResponse();
+        }
 
         return $this->success($service->markAllPresent($session, $request->user()->id), 'Đã đánh dấu tất cả có mặt.');
     }
@@ -116,15 +128,22 @@ class AttendanceController extends ApiController
     public function end(Request $request, AttendanceSession $session)
     {
         $this->authorize('update', $session);
-        if ($session->status === 'cancelled') return $this->inactiveSessionResponse();
-        if ($session->status !== 'ended') $session->update(['status' => 'ended', 'ended_at' => now(), 'qr_expires_at' => null]);
+        if ($session->status === 'cancelled') {
+            return $this->inactiveSessionResponse();
+        }
+        if ($session->status !== 'ended') {
+            $session->update(['status' => 'ended', 'ended_at' => now(), 'qr_expires_at' => null]);
+        }
+
         return $this->success($session->fresh()->load('attendances'), 'Đã kết thúc phiên điểm danh.');
     }
 
     public function cancel(Request $request, AttendanceSession $session, AuditLogger $audit)
     {
         $this->authorize('update', $session);
-        if ($session->status === 'ended') return $this->inactiveSessionResponse('Phiên đã kết thúc nên không thể hủy.');
+        if ($session->status === 'ended') {
+            return $this->inactiveSessionResponse('Phiên đã kết thúc nên không thể hủy.');
+        }
 
         if ($session->status !== 'cancelled') {
             $old = $session->only(['status', 'ended_at', 'qr_expires_at']);
@@ -155,7 +174,12 @@ class AttendanceController extends ApiController
         return $this->success(null, 'Đã xóa phiên điểm danh.');
     }
 
-    public function summary(AttendanceSession $session) { $this->authorize('view', $session); return $this->success($session->attendances()->selectRaw('status, count(*) as count')->groupBy('status')->pluck('count', 'status')); }
+    public function summary(AttendanceSession $session)
+    {
+        $this->authorize('view', $session);
+
+        return $this->success($session->attendances()->selectRaw('status, count(*) as count')->groupBy('status')->pluck('count', 'status'));
+    }
 
     private function inactiveSessionResponse(string $message = 'Chỉ phiên đang diễn ra mới có thể cập nhật điểm danh.')
     {

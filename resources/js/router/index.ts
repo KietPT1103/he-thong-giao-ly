@@ -5,11 +5,7 @@ import {
 } from "vue-router";
 import type { Component } from "vue";
 import { useAuthStore } from "../stores/authStore";
-import LandingPage from "../views/LandingPage.vue";
-import LoginView from "../views/LoginView.vue";
 import ModulePendingView from "../views/ModulePendingView.vue";
-import ForbiddenView from "../views/ForbiddenView.vue";
-import NotFoundView from "../views/NotFoundView.vue";
 
 declare module "vue-router" {
     interface RouteMeta {
@@ -43,17 +39,17 @@ const child = (path: string, title: string) =>
 const routes: RouteRecordRaw[] = [
     {
         path: "/",
-        component: LandingPage,
+        component: () => import("../views/LandingPage.vue"),
         meta: { public: true, title: "Hành Trang Đức Tin" },
     },
     {
         path: "/login",
-        component: LoginView,
+        component: () => import("../views/LoginView.vue"),
         meta: { public: true, title: "Đăng nhập" },
     },
     {
         path: "/register",
-        component: LoginView,
+        component: () => import("../views/LoginView.vue"),
         meta: { public: true, title: "Đăng ký" },
     },
     {
@@ -144,7 +140,13 @@ const routes: RouteRecordRaw[] = [
         "Bài tập",
         ["teacher"],
         () => import("../views/AssignmentsView.vue"),
+        "view-assignments",
     ),
+    protectedRoute("/teacher/assignments/new", "Tạo bài tập", ["teacher"], () => import("../views/AssignmentEditorView.vue"), "create-assignments"),
+    protectedRoute("/teacher/assignments/:id/edit", "Chỉnh sửa bài tập", ["teacher"], () => import("../views/AssignmentEditorView.vue"), "update-assignments"),
+    protectedRoute("/teacher/assignments/:id/submissions", "Chấm bài", ["teacher"], () => import("../views/AssignmentGradingView.vue"), "grade-assignments"),
+    protectedRoute("/teacher/submissions", "Bài nộp cần chấm", ["teacher"], () => import("../views/AssignmentGradingView.vue"), "grade-assignments"),
+    protectedRoute("/teacher/announcements", "Thông báo lớp", ["teacher"], () => import("../views/NotificationsView.vue"), "view-notifications"),
     protectedRoute(
         "/teacher/qr-scanner",
         "Tạo QR điểm danh",
@@ -155,9 +157,7 @@ const routes: RouteRecordRaw[] = [
     ...[
         ["/mass-attendance", "Lịch sử đi lễ"],
         ["/lessons", "Bài học"],
-        ["/submissions", "Bài nộp cần chấm"],
         ["/leave-requests", "Đơn xin nghỉ"],
-        ["/announcements", "Thông báo lớp"],
         ["/reports", "Báo cáo lớp"],
         ["/profile", "Hồ sơ"],
     ].map(([path, title]) =>
@@ -191,14 +191,15 @@ const routes: RouteRecordRaw[] = [
         () => import("../views/ChildQrView.vue"),
         "check-in-attendance-qr",
     ),
+    protectedRoute("/child/assignments", "Bài tập", ["child"], () => import("../views/ChildAssignmentsView.vue"), "view-assignments"),
+    protectedRoute("/child/assignments/:id", "Làm bài tập", ["child"], () => import("../views/ChildAssignmentTakeView.vue"), "view-assignments"),
+    protectedRoute("/child/notifications", "Thông báo", ["child"], () => import("../views/NotificationsView.vue"), "view-notifications"),
     ...[
         ["/schedule", "Lịch học"],
         ["/mass", "Thánh lễ"],
         ["/lessons", "Bài học"],
-        ["/assignments", "Bài tập"],
         ["/points", "Điểm thưởng"],
         ["/badges", "Huy hiệu"],
-        ["/notifications", "Thông báo"],
         ["/profile", "Cá nhân"],
     ].map(([path, title]) => child(path, title)),
 
@@ -212,12 +213,12 @@ const routes: RouteRecordRaw[] = [
     { path: "/lich-hoc", redirect: "/teacher/schedule" },
     {
         path: "/403",
-        component: ForbiddenView,
+        component: () => import("../views/ForbiddenView.vue"),
         meta: { public: true, title: "Không có quyền" },
     },
     {
         path: "/:pathMatch(.*)*",
-        component: NotFoundView,
+        component: () => import("../views/NotFoundView.vue"),
         meta: { public: true, title: "Không tìm thấy trang" },
     },
 ];

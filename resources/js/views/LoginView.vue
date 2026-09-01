@@ -110,7 +110,7 @@ async function submit() {
             font-black tracking-[-1px] max-[1200px]:text-[34px] max-[1100px]:text-[30px]"
         >
           <span class="whitespace-nowrap text-6xl">Đồng hành trên hành trình</span><br>
-          <em class="not-italic text-6xl text-[#ffd247]">lớn lên trong đức tin</em>
+          <em class="not-italic text-6xl text-[#ffd247]">Lớn lên trong đức tin</em>
         </h1>
         <p>Kết nối giáo lý viên, phụ huynh và thiếu nhi trong một môi trường gần gũi, thuận tiện và đầy yêu thương.</p>
         <div class="visual-benefits">

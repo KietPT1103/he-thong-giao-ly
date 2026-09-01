@@ -80,6 +80,13 @@ class TeacherAssignmentController extends ApiController
     public function update(UpsertAssignmentRequest $request, Assignment $assignment)
     {
         $data = $request->validated();
+        if ($assignment->recipients()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đề và người nhận đã được khóa sau khi phát hành. Hãy dùng thao tác đổi hạn hoặc cấp ngoại lệ.',
+                'code' => 'ASSIGNMENT_PUBLISHED_LOCKED',
+            ], 422);
+        }
         if (($data['version'] ?? $assignment->version) !== $assignment->version) {
             return response()->json([
                 'success' => false, 'message' => 'Bài tập đã được cập nhật ở nơi khác.',
@@ -146,6 +153,77 @@ class TeacherAssignmentController extends ApiController
         return $this->success($published, 'Đã phát hành bài tập.');
     }
 
+    public function changeDueDate(Request $request, Assignment $assignment)
+    {
+        $this->authorize('update', $assignment);
+        $data = $request->validate(['due_at' => ['required', 'date', 'after:now']]);
+        try {
+            $updated = $this->lifecycle->changeDueDate($request, $assignment, $data['due_at']);
+        } catch (DomainException $exception) {
+            return $this->lifecycleError($exception);
+        }
+
+        return $this->success($updated, 'Đã cập nhật hạn nộp và thông báo đến Thiếu nhi.');
+    }
+
+    public function accommodate(Request $request, Assignment $assignment, int $child)
+    {
+        $this->authorize('update', $assignment);
+        $data = $request->validate([
+            'due_at' => ['nullable', 'date', 'after:now'],
+            'extra_attempts' => ['required', 'integer', 'min:0', 'max:20'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        try {
+            $accommodation = $this->lifecycle->accommodate($request, $assignment, $child, $data);
+        } catch (DomainException $exception) {
+            return $this->lifecycleError($exception);
+        }
+
+        return $this->success($accommodation, 'Đã cập nhật ngoại lệ cho Thiếu nhi.');
+    }
+
+    public function close(Request $request, Assignment $assignment)
+    {
+        $this->authorize('update', $assignment);
+        try {
+            $closed = $this->lifecycle->close($request, $assignment);
+        } catch (DomainException $exception) {
+            return $this->lifecycleError($exception);
+        }
+
+        return $this->success($closed, 'Đã đóng bài tập.');
+    }
+
+    public function withdraw(Request $request, Assignment $assignment)
+    {
+        $this->authorize('update', $assignment);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+        try {
+            $withdrawn = $this->lifecycle->withdraw($request, $assignment, $data['reason']);
+        } catch (DomainException $exception) {
+            return $this->lifecycleError($exception);
+        }
+
+        return $this->success($withdrawn, 'Đã thu hồi bài tập.');
+    }
+
+    private function lifecycleError(DomainException $exception)
+    {
+        $messages = [
+            'ASSIGNMENT_NOT_ACTIVE' => 'Bài tập không còn hoạt động.',
+            'NOT_A_RECIPIENT' => 'Thiếu nhi không thuộc danh sách nhận bài.',
+            'ASSIGNMENT_CANNOT_CLOSE' => 'Trạng thái hiện tại không cho phép đóng bài.',
+            'ASSIGNMENT_CANNOT_WITHDRAW' => 'Bài tập đã được thu hồi hoặc lưu trữ.',
+        ];
+
+        return response()->json([
+            'success' => false,
+            'message' => $messages[$exception->getMessage()] ?? 'Không thể cập nhật bài tập.',
+            'code' => $exception->getMessage(),
+        ], 422);
+    }
+
     private function syncStructure(Request $request, Assignment $assignment, array $data): void
     {
         $assignment->questions()->delete();
@@ -156,7 +234,7 @@ class TeacherAssignmentController extends ApiController
             }
             $assignment->questions()->create(Arr::only($question, [
                 'source_question_id', 'type', 'prompt', 'explanation', 'points',
-                'position', 'options', 'accepted_answers', 'rubric',
+                'position', 'options', 'accepted_answers', 'rubric', 'settings',
             ]));
         }
         $assignment->targets()->delete();
@@ -209,7 +287,7 @@ class TeacherAssignmentController extends ApiController
     {
         return $assignment->load([
             'creator:id,name', 'questions', 'targets.catechismClass:id,name,code',
-            'targets.child:id,code,full_name',
+            'targets.child:id,code,full_name', 'recipients.child:id,code,full_name', 'files',
         ])->loadCount(['recipients', 'submissions']);
     }
 }

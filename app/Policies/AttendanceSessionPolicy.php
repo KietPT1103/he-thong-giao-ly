@@ -4,11 +4,14 @@ namespace App\Policies;
 
 use App\Models\AttendanceSession;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AttendanceSessionPolicy
 {
-    public function before(User $user, string $ability): bool|null { return $user->hasPermissionTo('manage-users') ? true : null; }
+    public function before(User $user, string $ability): ?bool
+    {
+        return $user->hasPermissionTo('manage-users') ? true : null;
+    }
+
     /**
      * Determine whether the user can view any models.
      */

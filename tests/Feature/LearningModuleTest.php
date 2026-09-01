@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Announcement;
 use App\Models\Assignment;
 use App\Models\AssignmentRecipient;
 use App\Models\Submission;
@@ -9,8 +10,10 @@ use App\Models\TeacherProfile;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -36,6 +39,7 @@ class LearningModuleTest extends TestCase
             'submissions',
             'submission_answers',
             'submission_files',
+            'assignment_files',
             'grade_histories',
             'announcement_targets',
         ] as $table) {
@@ -286,6 +290,10 @@ class LearningModuleTest extends TestCase
 
         $class->activeEnrollments()->firstOrFail()->update(['status' => 'inactive']);
         $this->assertSame($activeEnrollmentIds->count(), AssignmentRecipient::where('assignment_id', $assignmentId)->count());
+        $publishedPayload = $this->validAssignmentPayload($class->id);
+        $publishedPayload['version'] = Assignment::findOrFail($assignmentId)->version;
+        $this->actingAs($teacher)->patchJson("/api/teacher/assignments/{$assignmentId}", $publishedPayload)
+            ->assertUnprocessable()->assertJsonPath('code', 'ASSIGNMENT_PUBLISHED_LOCKED');
         $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")
             ->assertUnprocessable()->assertJsonPath('code', 'ASSIGNMENT_ALREADY_PUBLISHED');
     }
@@ -325,11 +333,385 @@ class LearningModuleTest extends TestCase
         $this->assertDatabaseHas('submission_answers', [
             'submission_id' => $submission['id'], 'assignment_question_id' => $questionId,
         ]);
+        $this->actingAs($child)->getJson("/api/child/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonPath('data.submissions.0.answers.0.answer.selected.0', 0)
+            ->assertJsonMissingPath('data.submissions.0.answers.0.auto_score');
         $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
             'version' => 1,
             'answers' => [['question_id' => $questionId, 'answer' => ['selected' => [1]]]],
         ])->assertStatus(409)->assertJsonPath('code', 'VERSION_CONFLICT');
         $this->assertSame(2, $saved['version']);
+    }
+
+    public function test_submitting_a_hybrid_attempt_auto_grades_objective_answers_and_locks_it(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()->json('data');
+        $questions = Assignment::findOrFail($assignmentId)->questions()->orderBy('position')->get();
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1,
+            'answers' => [
+                ['question_id' => $questions[0]->id, 'answer' => ['selected' => [0]]],
+                ['question_id' => $questions[1]->id, 'answer' => ['text' => 'Sống yêu thương mỗi ngày']],
+            ],
+        ])->assertOk();
+
+        $this->actingAs($child)->postJson("/api/child/submissions/{$submission['id']}/submit")
+            ->assertOk()
+            ->assertJsonPath('data.status', Submission::STATUS_GRADING)
+            ->assertJsonPath('data.auto_score', 4)
+            ->assertJsonPath('data.final_score', null);
+        $this->assertDatabaseHas('submission_answers', [
+            'submission_id' => $submission['id'], 'assignment_question_id' => $questions[0]->id,
+            'auto_score' => 4,
+        ]);
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 3,
+            'answers' => [['question_id' => $questions[0]->id, 'answer' => ['selected' => [1]]]],
+        ])->assertUnprocessable()->assertJsonPath('code', 'SUBMISSION_LOCKED');
+    }
+
+    public function test_all_objective_question_types_are_scored_automatically(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['type'] = 'quiz';
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $payload['questions'] = [
+            ['type' => 'single_choice', 'prompt' => 'Một lựa chọn', 'points' => 2, 'position' => 1,
+                'options' => [['content' => 'Đúng', 'is_correct' => true], ['content' => 'Sai', 'is_correct' => false]]],
+            ['type' => 'multiple_choice', 'prompt' => 'Nhiều lựa chọn', 'points' => 3, 'position' => 2,
+                'settings' => ['partial_credit' => true],
+                'options' => [['content' => 'A', 'is_correct' => true], ['content' => 'B', 'is_correct' => true], ['content' => 'C', 'is_correct' => false]]],
+            ['type' => 'true_false', 'prompt' => 'Đúng hay sai', 'points' => 2, 'position' => 3,
+                'options' => [['content' => 'Đúng', 'is_correct' => true], ['content' => 'Sai', 'is_correct' => false]]],
+            ['type' => 'short_answer', 'prompt' => 'Trả lời ngắn', 'points' => 3, 'position' => 4,
+                'accepted_answers' => ['Thiên Chúa']],
+        ];
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()->json('data');
+        $questions = Assignment::findOrFail($assignmentId)->questions()->orderBy('position')->get();
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1,
+            'answers' => [
+                ['question_id' => $questions[0]->id, 'answer' => ['selected' => [0]]],
+                ['question_id' => $questions[1]->id, 'answer' => ['selected' => [0]]],
+                ['question_id' => $questions[2]->id, 'answer' => ['selected' => [0]]],
+                ['question_id' => $questions[3]->id, 'answer' => ['text' => '  thiên chúa  ']],
+            ],
+        ])->assertOk();
+
+        $this->actingAs($child)->postJson("/api/child/submissions/{$submission['id']}/submit")
+            ->assertOk()
+            ->assertJsonPath('data.status', Submission::STATUS_GRADED)
+            ->assertJsonPath('data.auto_score', 8.5)
+            ->assertJsonPath('data.final_score', 8.5);
+    }
+
+    public function test_teacher_grades_essay_then_releases_results_with_audited_corrections(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()->json('data');
+        $questions = Assignment::findOrFail($assignmentId)->questions()->orderBy('position')->get();
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1,
+            'answers' => [
+                ['question_id' => $questions[0]->id, 'answer' => ['selected' => [0]]],
+                ['question_id' => $questions[1]->id, 'answer' => ['text' => 'Sống yêu thương']],
+            ],
+        ])->assertOk();
+        $submitted = $this->actingAs($child)->postJson("/api/child/submissions/{$submission['id']}/submit")
+            ->assertOk()->json('data');
+
+        $this->actingAs($child)->getJson("/api/child/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.submissions.0.final_score')
+            ->assertJsonMissingPath('data.submissions.0.answers');
+        $this->actingAs($teacher)->getJson("/api/teacher/assignments/{$assignmentId}/submissions")
+            ->assertOk()->assertJsonPath('data.data.0.id', $submission['id']);
+
+        $graded = $this->actingAs($teacher)->patchJson("/api/teacher/submissions/{$submission['id']}/grade", [
+            'version' => $submitted['version'],
+            'general_feedback' => 'Em trình bày rõ ràng.',
+            'answers' => [[
+                'question_id' => $questions[1]->id,
+                'score' => 6,
+                'feedback' => 'Có ví dụ thực tế.',
+                'rubric_scores' => [['label' => 'Nội dung', 'score' => 6]],
+            ]],
+        ])->assertOk()
+            ->assertJsonPath('data.status', Submission::STATUS_GRADED)
+            ->assertJsonPath('data.final_score', 10)
+            ->json('data');
+
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/release")
+            ->assertOk()->assertJsonPath('data.status', Assignment::STATUS_RELEASED);
+        $this->actingAs($child)->getJson("/api/child/assignments/{$assignmentId}")
+            ->assertOk()
+            ->assertJsonPath('data.submissions.0.final_score', 10)
+            ->assertJsonPath('data.submissions.0.general_feedback', 'Em trình bày rõ ràng.')
+            ->assertJsonPath('data.questions.0.options.0.is_correct', true);
+
+        $correction = [
+            'version' => $graded['version'] + 1,
+            'general_feedback' => 'Điều chỉnh sau đối soát.',
+            'answers' => [[
+                'question_id' => $questions[1]->id, 'score' => 5,
+                'feedback' => 'Cần thêm ví dụ.', 'rubric_scores' => [],
+            ]],
+        ];
+        $this->actingAs($teacher)->patchJson("/api/teacher/submissions/{$submission['id']}/grade", $correction)
+            ->assertUnprocessable()->assertJsonValidationErrors('reason');
+        $correction['reason'] = 'Rà soát lại rubric';
+        $this->actingAs($teacher)->patchJson("/api/teacher/submissions/{$submission['id']}/grade", $correction)
+            ->assertOk()->assertJsonPath('data.final_score', 9);
+        $this->assertDatabaseHas('grade_histories', [
+            'submission_id' => $submission['id'], 'reason' => 'Rà soát lại rubric',
+        ]);
+    }
+
+    public function test_teacher_can_view_and_export_assignment_result_statistics(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $enrollments = $class->activeEnrollments()->with('child')->limit(2)->get();
+        $assignment = Assignment::create([
+            'created_by' => $teacher->id, 'title' => 'Báo cáo thử nghiệm',
+            'status' => Assignment::STATUS_RELEASED, 'passing_score' => 5,
+        ]);
+        $assignment->targets()->create(['catechism_class_id' => $class->id]);
+        foreach ($enrollments as $index => $enrollment) {
+            $assignment->recipients()->create([
+                'catechism_class_id' => $class->id,
+                'child_id' => $enrollment->child_id,
+                'enrollment_id' => $enrollment->id,
+                'assigned_at' => now(),
+            ]);
+            Submission::create([
+                'assignment_id' => $assignment->id,
+                'child_id' => $enrollment->child_id,
+                'attempt_number' => 1,
+                'status' => Submission::STATUS_RELEASED,
+                'started_at' => now()->subHour(),
+                'submitted_at' => now()->subMinutes(30),
+                'released_at' => now(),
+                'final_score' => $index === 0 ? 8 : 4,
+                'is_late' => $index === 1,
+            ]);
+        }
+
+        $this->actingAs($teacher)->getJson("/api/teacher/assignments/{$assignment->id}/report")
+            ->assertOk()
+            ->assertJsonPath('data.summary.recipient_count', 2)
+            ->assertJsonPath('data.summary.submitted_count', 2)
+            ->assertJsonPath('data.summary.late_count', 1)
+            ->assertJsonPath('data.summary.average_score', 6)
+            ->assertJsonPath('data.summary.pass_rate', 50)
+            ->assertJsonPath('data.distribution.below_5', 1)
+            ->assertJsonPath('data.distribution.from_7_to_8_5', 1);
+
+        $export = $this->actingAs($teacher)->get("/api/teacher/assignments/{$assignment->id}/report/export");
+        $export->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Báo cáo thử nghiệm', $export->streamedContent());
+    }
+
+    public function test_teacher_can_send_an_important_class_announcement_and_track_acknowledgements(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $children = $class->activeEnrollments()->with('child.user')->limit(2)->get()->pluck('child');
+        $secondChildUser = User::factory()->create(['email' => 'child2@giaoly.test']);
+        $secondChildUser->assignRole('child');
+        $children->last()->update(['user_id' => $secondChildUser->id]);
+
+        $announcement = $this->actingAs($teacher)->postJson('/api/teacher/announcements', [
+            'title' => 'Chuẩn bị Thánh lễ Chúa nhật',
+            'body' => 'Các em có mặt trước giờ lễ 15 phút và mang theo khăn quàng.',
+            'importance' => 'important',
+            'is_pinned' => true,
+            'requires_acknowledgement' => true,
+            'targets' => [[
+                'catechism_class_id' => $class->id,
+                'audience' => 'children',
+                'child_ids' => [],
+            ]],
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'draft')
+            ->json('data');
+
+        $this->actingAs($teacher)->postJson("/api/teacher/announcements/{$announcement['id']}/send")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'sent')
+            ->assertJsonPath('data.recipient_count', 2);
+
+        $firstChildUser = $children->first()->user;
+        $this->actingAs($firstChildUser)->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Chuẩn bị Thánh lễ Chúa nhật')
+            ->assertJsonPath('meta.unread_count', 1);
+        $this->actingAs($firstChildUser)->postJson("/api/notifications/{$announcement['id']}/read")
+            ->assertOk()->assertJsonPath('data.is_read', true);
+        $this->actingAs($firstChildUser)->postJson("/api/notifications/{$announcement['id']}/acknowledge")
+            ->assertOk()->assertJsonPath('data.is_acknowledged', true);
+
+        $this->actingAs($teacher)->postJson("/api/teacher/announcements/{$announcement['id']}/remind")
+            ->assertOk()->assertJsonPath('data.reminded_count', 1);
+        $this->assertDatabaseHas('announcement_recipients', [
+            'announcement_id' => $announcement['id'],
+            'user_id' => $secondChildUser->id,
+        ]);
+        $this->assertNotNull(Announcement::findOrFail($announcement['id'])
+            ->recipients()->where('users.id', $secondChildUser->id)->first()->pivot->reminded_at);
+    }
+
+    public function test_publishing_an_assignment_creates_a_notification_for_every_recipient(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $assignment = $this->actingAs($teacher)->postJson(
+            '/api/teacher/assignments',
+            $this->validAssignmentPayload($class->id),
+        )->assertCreated()->json('data');
+
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignment['id']}/publish")
+            ->assertOk();
+
+        $notification = Announcement::where('source_type', 'assignment_published')
+            ->where('source_id', $assignment['id'])->firstOrFail();
+        $this->assertSame('sent', $notification->status);
+        $this->assertSame(
+            Assignment::findOrFail($assignment['id'])->recipients()
+                ->whereHas('child', fn ($query) => $query->whereNotNull('user_id'))->count(),
+            $notification->recipients()->count(),
+        );
+    }
+
+    public function test_submission_files_are_private_limited_and_reject_executables(): void
+    {
+        Storage::fake('local');
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()->json('data');
+
+        $file = $this->actingAs($child)->post("/api/child/submissions/{$submission['id']}/files", [
+            'file' => UploadedFile::fake()->create('bai-lam.pdf', 100, 'application/pdf'),
+        ])->assertCreated()->assertJsonMissingPath('data.path')->json('data');
+        $this->assertDatabaseHas('submission_files', [
+            'id' => $file['id'], 'submission_id' => $submission['id'], 'original_name' => 'bai-lam.pdf',
+        ]);
+
+        $otherChild = User::factory()->create(['email' => 'private-file-outsider@giaoly.test']);
+        $otherChild->assignRole('child');
+        $otherProfile = $class->activeEnrollments()->where('child_id', '!=', $child->child->id)->firstOrFail()->child;
+        $otherProfile->update(['user_id' => $otherChild->id]);
+        $this->actingAs($otherChild)->get("/api/learning-files/submissions/{$file['id']}")->assertForbidden();
+        $this->actingAs($teacher)->get("/api/learning-files/submissions/{$file['id']}")->assertOk();
+
+        $this->actingAs($child)->withHeaders(['Accept' => 'application/json'])->post("/api/child/submissions/{$submission['id']}/files", [
+            'file' => UploadedFile::fake()->create('ma-doc.exe', 20, 'application/x-msdownload'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('file');
+
+        foreach (range(2, 5) as $version) {
+            $submissionModel = Submission::findOrFail($submission['id']);
+            $submissionModel->files()->create([
+                'uploaded_by' => $child->id, 'path' => "learning/fake-{$version}.pdf",
+                'original_name' => "fake-{$version}.pdf", 'mime_type' => 'application/pdf', 'size' => 100,
+            ]);
+        }
+        $this->actingAs($child)->withHeaders(['Accept' => 'application/json'])->post("/api/child/submissions/{$submission['id']}/files", [
+            'file' => UploadedFile::fake()->create('thu-sau.pdf', 20, 'application/pdf'),
+        ])->assertUnprocessable();
+    }
+
+    public function test_teacher_can_change_due_date_grant_extra_attempt_close_and_withdraw(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+
+        $newDue = now()->addWeeks(2)->startOfMinute();
+        $this->actingAs($teacher)->patchJson("/api/teacher/assignments/{$assignmentId}/due-date", [
+            'due_at' => $newDue->toIso8601String(),
+        ])->assertOk()->assertJsonPath('data.due_at', $newDue->toJSON());
+        $this->assertDatabaseHas('announcements', [
+            'source_type' => 'assignment_due_changed', 'source_id' => $assignmentId,
+        ]);
+
+        $this->actingAs($teacher)->putJson("/api/teacher/assignments/{$assignmentId}/accommodations/{$child->child->id}", [
+            'extra_attempts' => 2,
+            'due_at' => now()->addWeeks(3)->toIso8601String(),
+            'reason' => 'Nghỉ bệnh có phép',
+        ])->assertOk()->assertJsonPath('data.extra_attempts', 2);
+        $extraAttemptNotice = Announcement::where('source_type', "assignment_extra_attempt_{$child->child->id}")
+            ->where('source_id', $assignmentId)->firstOrFail();
+        $this->assertSame(1, $extraAttemptNotice->recipients()->count());
+
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/close")
+            ->assertOk()->assertJsonPath('data.status', Assignment::STATUS_CLOSED);
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/withdraw", [
+            'reason' => 'Đề bài cần được thay thế',
+        ])->assertOk()->assertJsonPath('data.status', Assignment::STATUS_WITHDRAWN);
+    }
+
+    public function test_teacher_can_reopen_a_graded_submission_for_the_child(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $class = $child->child->activeEnrollment->catechismClass;
+        $payload = $this->validAssignmentPayload($class->id);
+        $payload['opens_at'] = now()->subMinute()->toIso8601String();
+        $payload['questions'] = [$payload['questions'][0]];
+        $assignmentId = $this->actingAs($teacher)->postJson('/api/teacher/assignments', $payload)
+            ->assertCreated()->json('data.id');
+        $this->actingAs($teacher)->postJson("/api/teacher/assignments/{$assignmentId}/publish")->assertOk();
+        $submission = $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertCreated()->json('data');
+        $questionId = Assignment::findOrFail($assignmentId)->questions()->value('id');
+        $this->actingAs($child)->patchJson("/api/child/submissions/{$submission['id']}/answers", [
+            'version' => 1, 'answers' => [['question_id' => $questionId, 'answer' => ['selected' => [0]]]],
+        ])->assertOk();
+        $this->actingAs($child)->postJson("/api/child/submissions/{$submission['id']}/submit")
+            ->assertOk()->assertJsonPath('data.status', Submission::STATUS_GRADED);
+
+        $this->actingAs($teacher)->postJson("/api/teacher/submissions/{$submission['id']}/reopen", [
+            'reason' => 'Cho em sửa lại theo hướng dẫn',
+        ])->assertOk()->assertJsonPath('data.status', Submission::STATUS_REOPENED);
+        $this->actingAs($child)->postJson("/api/child/assignments/{$assignmentId}/attempts")
+            ->assertOk()->assertJsonPath('data.id', $submission['id']);
     }
 
     private function validAssignmentPayload(int $classId): array

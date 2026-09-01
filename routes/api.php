@@ -14,10 +14,15 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChildAssignmentController;
 use App\Http\Controllers\Api\ChildDeviceController;
 use App\Http\Controllers\Api\ClassController;
+use App\Http\Controllers\Api\LearningFileController;
+use App\Http\Controllers\Api\NotificationInboxController;
 use App\Http\Controllers\Api\QrAttendanceController;
+use App\Http\Controllers\Api\TeacherAnnouncementController;
 use App\Http\Controllers\Api\TeacherAssignmentController;
+use App\Http\Controllers\Api\TeacherAssignmentReportController;
 use App\Http\Controllers\Api\TeacherClassController;
 use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\Api\TeacherGradingController;
 use App\Http\Controllers\Api\TeacherQuestionBankController;
 use Illuminate\Support\Facades\Route;
 
@@ -134,12 +139,38 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::apiResource('teacher/question-bank', TeacherQuestionBankController::class)
         ->parameters(['question-bank' => 'question'])
         ->except(['show']);
+    Route::post('teacher/announcements/{announcement}/send', [TeacherAnnouncementController::class, 'send']);
+    Route::post('teacher/announcements/{announcement}/withdraw', [TeacherAnnouncementController::class, 'withdraw']);
+    Route::post('teacher/announcements/{announcement}/remind', [TeacherAnnouncementController::class, 'remind']);
+    Route::apiResource('teacher/announcements', TeacherAnnouncementController::class);
     Route::post('teacher/assignments/{assignment}/publish', [TeacherAssignmentController::class, 'publish']);
+    Route::patch('teacher/assignments/{assignment}/due-date', [TeacherAssignmentController::class, 'changeDueDate']);
+    Route::put('teacher/assignments/{assignment}/accommodations/{child}', [TeacherAssignmentController::class, 'accommodate']);
+    Route::post('teacher/assignments/{assignment}/close', [TeacherAssignmentController::class, 'close']);
+    Route::post('teacher/assignments/{assignment}/withdraw', [TeacherAssignmentController::class, 'withdraw']);
+    Route::get('teacher/assignments/{assignment}/report/export', [TeacherAssignmentReportController::class, 'export']);
+    Route::get('teacher/assignments/{assignment}/report', [TeacherAssignmentReportController::class, 'show']);
+    Route::get('teacher/assignments/{assignment}/submissions', [TeacherGradingController::class, 'index']);
+    Route::post('teacher/assignments/{assignment}/release', [TeacherGradingController::class, 'release']);
+    Route::patch('teacher/submissions/{submission}/grade', [TeacherGradingController::class, 'grade']);
+    Route::post('teacher/submissions/{submission}/reopen', [TeacherGradingController::class, 'reopen']);
     Route::apiResource('teacher/assignments', TeacherAssignmentController::class);
     Route::get('child/assignments', [ChildAssignmentController::class, 'index']);
     Route::get('child/assignments/{assignment}', [ChildAssignmentController::class, 'show']);
     Route::post('child/assignments/{assignment}/attempts', [ChildAssignmentController::class, 'start']);
     Route::patch('child/submissions/{submission}/answers', [ChildAssignmentController::class, 'saveAnswers']);
+    Route::post('child/submissions/{submission}/submit', [ChildAssignmentController::class, 'submit']);
+    Route::post('teacher/assignments/{assignment}/files', [LearningFileController::class, 'storeAssignment'])->middleware('throttle:upload');
+    Route::delete('teacher/assignment-files/{file}', [LearningFileController::class, 'destroyAssignment']);
+    Route::post('child/submissions/{submission}/files', [LearningFileController::class, 'storeSubmission'])->middleware('throttle:upload');
+    Route::delete('child/submission-files/{file}', [LearningFileController::class, 'destroySubmission']);
+    Route::get('learning-files/assignments/{file}', [LearningFileController::class, 'downloadAssignment']);
+    Route::get('learning-files/submissions/{file}', [LearningFileController::class, 'downloadSubmission']);
+    Route::get('notifications', [NotificationInboxController::class, 'index']);
+    Route::post('notifications/read-all', [NotificationInboxController::class, 'readAll']);
+    Route::get('notifications/{announcement}', [NotificationInboxController::class, 'show']);
+    Route::post('notifications/{announcement}/read', [NotificationInboxController::class, 'read']);
+    Route::post('notifications/{announcement}/acknowledge', [NotificationInboxController::class, 'acknowledge']);
     Route::prefix('teacher/classes')->group(function () {
         Route::get('options', [TeacherClassController::class, 'options'])->middleware('can:view-classes');
         Route::get('{class}/workspace', [TeacherClassController::class, 'workspace'])->middleware('can:view-classes');

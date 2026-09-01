@@ -3,16 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\AdminDashboardResource;
-use App\Models\{
-    Announcement,
-    Attendance,
-    AttendanceSession,
-    CatechismClass,
-    Child,
-    LeaveRequest,
-    Parish,
-    TeacherProfile
-};
+use App\Models\Announcement;
+use App\Models\Attendance;
+use App\Models\AttendanceSession;
+use App\Models\CatechismClass;
+use App\Models\Child;
+use App\Models\LeaveRequest;
+use App\Models\Parish;
+use App\Models\TeacherProfile;
 use Illuminate\Http\Request;
 
 class AdminDashboardController extends ApiController

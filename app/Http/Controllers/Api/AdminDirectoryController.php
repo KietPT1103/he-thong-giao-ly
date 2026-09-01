@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Admin\AdminIndexRequest;
 use App\Http\Resources\AdminListItemResource;
-use App\Models\{
-    Announcement,
-    CatechismClass,
-    Child,
-    ParentProfile
-};
+use App\Models\Announcement;
+use App\Models\CatechismClass;
+use App\Models\Child;
+use App\Models\ParentProfile;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -20,10 +18,9 @@ class AdminDirectoryController extends ApiController
         $query = ParentProfile::query()
             ->with(['user:id,name,email,status,last_login_at', 'parish:id,name'])
             ->withCount('children')
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->whereHas('user', fn (Builder $user) => $user
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")));
+            ->when($request->string('search')->toString(), fn (Builder $q, string $search) => $q->whereHas('user', fn (Builder $user) => $user
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")));
 
         return $this->page($query->latest()->paginate($request->integer('per_page', 15)), fn (ParentProfile $parent) => [
             'id' => $parent->id,
@@ -40,12 +37,10 @@ class AdminDirectoryController extends ApiController
         $query = Child::query()
             ->with(['parish:id,name', 'enrollments.catechismClass:id,name'])
             ->withCount('parents')
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->where(fn (Builder $inner) => $inner
-                    ->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")))
-            ->when($request->string('status')->toString(), fn (Builder $q, string $status) =>
-                $q->where('status', $status));
+            ->when($request->string('search')->toString(), fn (Builder $q, string $search) => $q->where(fn (Builder $inner) => $inner
+                ->where('full_name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")))
+            ->when($request->string('status')->toString(), fn (Builder $q, string $status) => $q->where('status', $status));
 
         return $this->page($query->orderBy('full_name')->paginate($request->integer('per_page', 15)), fn (Child $child) => [
             'id' => $child->id,
@@ -66,10 +61,9 @@ class AdminDirectoryController extends ApiController
         $query = CatechismClass::query()
             ->with(['academicYear:id,name', 'level:id,name', 'classroom:id,name'])
             ->withCount(['children', 'teachers'])
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->where(fn (Builder $inner) => $inner
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")));
+            ->when($request->string('search')->toString(), fn (Builder $q, string $search) => $q->where(fn (Builder $inner) => $inner
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")));
 
         return $this->page($query->orderBy('name')->paginate($request->integer('per_page', 15)), fn (CatechismClass $class) => [
             'id' => $class->id,
@@ -90,8 +84,7 @@ class AdminDirectoryController extends ApiController
         $query = Announcement::query()
             ->with(['parish:id,name', 'creator:id,name'])
             ->withCount('recipients')
-            ->when($request->string('search')->toString(), fn (Builder $q, string $search) =>
-                $q->where('title', 'like', "%{$search}%"));
+            ->when($request->string('search')->toString(), fn (Builder $q, string $search) => $q->where('title', 'like', "%{$search}%"));
 
         return $this->page($query->latest()->paginate($request->integer('per_page', 15)), fn (Announcement $announcement) => [
             'id' => $announcement->id,

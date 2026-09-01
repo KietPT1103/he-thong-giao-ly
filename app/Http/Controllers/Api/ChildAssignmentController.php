@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\Learning\SaveSubmissionAnswersRequest;
 use App\Models\Assignment;
 use App\Models\Submission;
+use App\Services\AuditLogger;
 use App\Services\SubmissionService;
 use DomainException;
 use Illuminate\Http\Request;
 
 class ChildAssignmentController extends ApiController
 {
-    public function __construct(private readonly SubmissionService $submissions) {}
+    public function __construct(
+        private readonly SubmissionService $submissions,
+        private readonly AuditLogger $auditLogger,
+    ) {}
 
     public function index(Request $request)
     {
@@ -40,8 +44,9 @@ class ChildAssignmentController extends ApiController
         $this->authorize('view', $assignment);
         $childId = $request->user()->child->id;
         $assignment->load([
-            'questions', 'targets.catechismClass:id,name,code',
-            'submissions' => fn ($query) => $query->where('child_id', $childId)->latest('attempt_number'),
+            'questions', 'targets.catechismClass:id,name,code', 'files',
+            'submissions' => fn ($query) => $query->where('child_id', $childId)
+                ->with(['answers', 'files'])->latest('attempt_number'),
         ]);
 
         return $this->success($this->safeAssignment($assignment, $childId), 'Đã tải nội dung bài tập.');
@@ -75,21 +80,64 @@ class ChildAssignmentController extends ApiController
         ], 'Đã tự động lưu câu trả lời.');
     }
 
+    public function submit(Request $request, Submission $submission)
+    {
+        $this->authorize('update', $submission);
+        try {
+            $submitted = $this->submissions->submit($submission);
+        } catch (DomainException $exception) {
+            return $this->domainError($exception);
+        }
+        $this->auditLogger->record($request, 'assignment.submitted', $submitted, null, [
+            'assignment_id' => $submitted->assignment_id,
+            'attempt_number' => $submitted->attempt_number,
+            'is_late' => $submitted->is_late,
+        ]);
+
+        return $this->success($submitted, 'Đã nộp bài.');
+    }
+
     private function safeAssignment(Assignment $assignment, int $childId): array
     {
         $payload = $assignment->toArray();
-        $payload['questions'] = $assignment->questions->map(function ($question) {
+        $released = $assignment->submissions->contains('status', Submission::STATUS_RELEASED);
+        $payload['questions'] = $assignment->questions->map(function ($question) use ($assignment, $released) {
             $item = $question->only(['id', 'type', 'prompt', 'points', 'position']);
             if ($question->options) {
-                $item['options'] = collect($question->options)->values()->map(fn ($option, $index) => [
-                    'id' => $index, 'content' => $option['content'],
-                ])->all();
+                $item['options'] = collect($question->options)->values()->map(function ($option, $index) use ($assignment, $released) {
+                    $safe = ['id' => $index, 'content' => $option['content']];
+                    if ($released && $assignment->show_answers) {
+                        $safe['is_correct'] = (bool) $option['is_correct'];
+                    }
+
+                    return $safe;
+                })->all();
             }
             if ($question->type === 'essay') {
                 $item['rubric'] = $question->rubric;
             }
+            if ($released && $assignment->show_answers) {
+                $item['explanation'] = $question->explanation;
+            }
 
             return $item;
+        })->all();
+        $payload['submissions'] = $assignment->submissions->map(function (Submission $submission) {
+            $safe = $submission->only(['id', 'attempt_number', 'status', 'started_at', 'submitted_at', 'is_late']);
+            if ($submission->status === Submission::STATUS_RELEASED) {
+                $safe += $submission->only(['auto_score', 'manual_score', 'final_score', 'general_feedback', 'graded_at', 'released_at']);
+                $safe['answers'] = $submission->answers->map->only([
+                    'assignment_question_id', 'auto_score', 'manual_score', 'rubric_scores', 'feedback', 'graded_at',
+                ])->all();
+            } elseif (in_array($submission->status, [Submission::STATUS_IN_PROGRESS, Submission::STATUS_REOPENED], true)) {
+                $safe['version'] = $submission->version;
+                $safe['answers'] = $submission->answers->map->only([
+                    'assignment_question_id', 'answer', 'saved_at',
+                ])->all();
+            }
+            $safe['files'] = $submission->files;
+
+            return $safe;
         })->all();
         $payload['recipient'] = $assignment->recipients()->where('child_id', $childId)->first();
 

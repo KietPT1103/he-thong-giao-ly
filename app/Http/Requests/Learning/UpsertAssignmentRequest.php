@@ -62,6 +62,8 @@ class UpsertAssignmentRequest extends FormRequest
             'questions.*.rubric' => ['nullable', 'array', 'max:20'],
             'questions.*.rubric.*.label' => ['required_with:questions.*.rubric', 'string', 'max:200'],
             'questions.*.rubric.*.points' => ['required_with:questions.*.rubric', 'numeric', 'gte:0'],
+            'questions.*.settings' => ['nullable', 'array'],
+            'questions.*.settings.partial_credit' => ['nullable', 'boolean'],
         ];
     }
 

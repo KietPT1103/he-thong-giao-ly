@@ -37,6 +37,8 @@ class UpsertQuestionBankItemRequest extends FormRequest
             'rubric' => ['nullable', 'array', 'max:20'],
             'rubric.*.label' => ['required_with:rubric', 'string', 'max:200'],
             'rubric.*.points' => ['required_with:rubric', 'numeric', 'gte:0', 'max:1000'],
+            'settings' => ['nullable', 'array'],
+            'settings.partial_credit' => ['nullable', 'boolean'],
             'version' => ['nullable', 'integer', 'min:1'],
         ];
     }

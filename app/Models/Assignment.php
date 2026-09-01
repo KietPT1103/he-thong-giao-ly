@@ -77,4 +77,9 @@ class Assignment extends Model
     {
         return $this->hasMany(Submission::class);
     }
+
+    public function files()
+    {
+        return $this->hasMany(AssignmentFile::class);
+    }
 }

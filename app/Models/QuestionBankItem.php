@@ -12,14 +12,14 @@ class QuestionBankItem extends Model
     protected $fillable = [
         'parish_id', 'owner_id', 'scope', 'type', 'prompt', 'explanation',
         'default_points', 'difficulty', 'tags', 'options', 'accepted_answers',
-        'rubric', 'version',
+        'rubric', 'settings', 'version',
     ];
 
     protected function casts(): array
     {
         return [
             'tags' => 'array', 'options' => 'array',
-            'accepted_answers' => 'array', 'rubric' => 'array',
+            'accepted_answers' => 'array', 'rubric' => 'array', 'settings' => 'array',
         ];
     }
 

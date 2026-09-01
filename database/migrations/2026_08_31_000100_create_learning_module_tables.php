@@ -22,6 +22,7 @@ return new class extends Migration
             $table->json('options')->nullable();
             $table->json('accepted_answers')->nullable();
             $table->json('rubric')->nullable();
+            $table->json('settings')->nullable();
             $table->unsignedInteger('version')->default(1);
             $table->timestamps();
             $table->softDeletes();
@@ -72,6 +73,7 @@ return new class extends Migration
             $table->json('options')->nullable();
             $table->json('accepted_answers')->nullable();
             $table->json('rubric')->nullable();
+            $table->json('settings')->nullable();
             $table->timestamps();
             $table->unique(['assignment_id', 'position']);
         });
