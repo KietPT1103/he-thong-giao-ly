@@ -1,18 +1,31 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Bell, Menu } from "lucide-vue-next";
 import AppSidebar from "./components/AppSidebar.vue";
 import { useAuthStore } from "./stores/authStore";
 import { Toaster } from "./components/ui/sonner";
+import { getNotifications } from "./api/learning";
 import "vue-sonner/style.css";
 
 const route = useRoute();
+const router = useRouter();
 const auth = useAuthStore();
 const open = ref(false);
 const publicPage = computed(() => Boolean(route.meta.public));
 const roleLabel = computed(() => ({ admin: "Quản trị hệ thống", teacher: "Giáo lý viên", parent: "Phụ huynh", child: "Thiếu nhi" }[auth.roles[0] ?? ""] ?? "Hệ thống giáo lý"));
 const fullWidthContent = computed(() => route.path === "/teacher/attendance" || route.path.startsWith("/teacher/attendance/"));
+const unreadNotifications = ref(0);
+const notificationPath = computed(() => auth.roles.includes("child") ? "/child/notifications" : auth.roles.includes("parent") ? "/parent/notifications" : auth.roles.includes("teacher") ? "/teacher/announcements" : "/admin/announcements");
+
+async function refreshNotificationCount() {
+    if (!auth.isAuthenticated || !auth.hasPermission("view-notifications") || auth.roles.includes("teacher") || auth.roles.includes("admin")) {
+        unreadNotifications.value = 0;
+        return;
+    }
+    try { unreadNotifications.value = Number((await getNotifications()).data.meta.unread_count ?? 0); }
+    catch { unreadNotifications.value = 0; }
+}
 
 function closeNavigation() {
     open.value = false;
@@ -22,13 +35,15 @@ function handleEscape(event: KeyboardEvent) {
     if (event.key === "Escape") closeNavigation();
 }
 
-watch(() => route.fullPath, closeNavigation);
+watch(() => route.fullPath, () => { closeNavigation(); void refreshNotificationCount(); });
+watch(() => auth.user?.id, () => void refreshNotificationCount());
 watch(open, (isOpen) => {
     document.body.classList.toggle("navigation-open", isOpen);
 });
-onMounted(() => window.addEventListener("keydown", handleEscape));
+onMounted(() => { window.addEventListener("keydown", handleEscape); window.addEventListener("notifications:changed", refreshNotificationCount); void refreshNotificationCount(); });
 onBeforeUnmount(() => {
     window.removeEventListener("keydown", handleEscape);
+    window.removeEventListener("notifications:changed", refreshNotificationCount);
     document.body.classList.remove("navigation-open");
 });
 </script>
@@ -44,7 +59,7 @@ onBeforeUnmount(() => {
                 <div class="app-shell-header-inner mx-auto w-full px-3 sm:px-5 lg:px-7">
                     <button class="header-menu-button grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 lg:hidden" aria-label="Mở menu điều hướng" aria-controls="app-sidebar" :aria-expanded="open" @click="open = true"><Menu class="size-5" /></button>
                     <div class="header-title min-w-0"><h1 class="truncate text-sm font-semibold text-ink sm:text-base">{{ route.meta.title }}</h1><p class="truncate text-[11px] text-slate-500 sm:text-xs">{{ roleLabel }}</p></div>
-                    <button disabled class="header-notification grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400" aria-label="Thông báo đang được hoàn thiện" title="Thông báo đang được hoàn thiện"><Bell class="size-5" /></button>
+                    <button class="header-notification relative grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-50" :aria-label="unreadNotifications ? `${unreadNotifications} thông báo chưa đọc` : 'Mở thông báo'" @click="router.push(notificationPath)"><Bell class="size-5" /><span v-if="unreadNotifications" class="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">{{ unreadNotifications > 99 ? '99+' : unreadNotifications }}</span></button>
                 </div>
             </header>
             <main class="app-content mx-auto w-full px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-7 lg:py-7" :class="{ 'app-content--full': fullWidthContent }"><RouterView /></main>

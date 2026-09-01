@@ -24,18 +24,15 @@ class AdminParishController extends ApiController
         'announcements',
     ];
 
-    public function __construct(private readonly AuditLogger $auditLogger)
-    {
-    }
+    public function __construct(private readonly AuditLogger $auditLogger) {}
 
     public function index(AdminIndexRequest $request)
     {
         $parishes = Parish::query()
             ->withCount(self::DEPENDENCY_RELATIONS)
-            ->when($request->string('search')->toString(), fn (Builder $query, string $search) =>
-                $query->where(fn (Builder $inner) => $inner
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")))
+            ->when($request->string('search')->toString(), fn (Builder $query, string $search) => $query->where(fn (Builder $inner) => $inner
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")))
             ->orderBy('name')
             ->paginate($request->integer('per_page', 15));
 

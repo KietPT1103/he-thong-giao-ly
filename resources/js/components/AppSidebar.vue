@@ -40,8 +40,8 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/teacher/children", label: "Thiếu nhi", icon: Users, permission: "view-children" },
         { to: "/teacher/schedule", label: "Lịch dạy", icon: CalendarDays, permission: "view-classes" },
         { to: "/teacher/attendance", label: "Điểm danh lớp", icon: CheckSquare, permission: "view-attendance" },
-        { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen, permission: "view-classes" },
-        { to: "/teacher/submissions", label: "Bài cần chấm", icon: ClipboardList, permission: "view-classes" },
+        { to: "/teacher/assignments", label: "Bài tập", icon: BookOpen, permission: "view-assignments" },
+        { to: "/teacher/submissions", label: "Bài cần chấm", icon: ClipboardList, permission: "grade-assignments" },
         { to: "/teacher/announcements", label: "Thông báo lớp", icon: Bell, permission: "view-notifications" },
     ],
     parent: [
@@ -58,6 +58,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/child/schedule", label: "Lịch học", icon: CalendarDays },
         { to: "/child/mass", label: "Thánh lễ", icon: Church },
         { to: "/child/assignments", label: "Bài tập", icon: BookOpen },
+        { to: "/child/notifications", label: "Thông báo", icon: Bell, permission: "view-notifications" },
         { to: "/child/points", label: "Điểm thưởng", icon: Gift },
         { to: "/child/my-qr", label: "Quét QR điểm danh", icon: QrCode, permission: "check-in-attendance-qr" },
     ],

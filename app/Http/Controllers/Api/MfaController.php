@@ -35,6 +35,7 @@ class MfaController extends ApiController
         $secret = (string) $request->session()->get('auth.mfa_setup_secret');
         if ($secret === '' || ! $totp->verify($secret, $data['code'])) {
             $audit->record($request, 'mfa.confirm_failed', $request->user());
+
             return response()->json(['success' => false, 'message' => 'Mã xác thực không hợp lệ.', 'code' => 'INVALID_MFA_CODE'], 422);
         }
 

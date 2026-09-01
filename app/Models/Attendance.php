@@ -1,1 +1,20 @@
-<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class Attendance extends Model { protected $fillable=['attendance_session_id','child_id','status','arrived_at','note']; public function session(){return $this->belongsTo(AttendanceSession::class,'attendance_session_id');} public function child(){return $this->belongsTo(Child::class);} }
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Attendance extends Model
+{
+    protected $fillable = ['attendance_session_id', 'child_id', 'status', 'arrived_at', 'note'];
+
+    public function session()
+    {
+        return $this->belongsTo(AttendanceSession::class, 'attendance_session_id');
+    }
+
+    public function child()
+    {
+        return $this->belongsTo(Child::class);
+    }
+}

@@ -15,9 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class AdminTeacherController extends ApiController
 {
-    public function __construct(private readonly AuditLogger $auditLogger)
-    {
-    }
+    public function __construct(private readonly AuditLogger $auditLogger) {}
 
     public function index(TeacherIndexRequest $request)
     {
@@ -28,22 +26,17 @@ class AdminTeacherController extends ApiController
         $teachers = TeacherProfile::query()
             ->with(['user', 'parish:id,name,code'])
             ->withCount('classes')
-            ->when($request->string('search')->toString(), fn (Builder $query, string $search) =>
-                $query->where(fn (Builder $inner) => $inner
-                    ->where('code', 'like', "%{$search}%")
-                    ->orWhereHas('user', fn (Builder $user) => $user
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%"))))
-            ->when($request->integer('parish_id'), fn (Builder $query, int $parishId) =>
-                $query->where('parish_id', $parishId))
-            ->when($status === 'archived', fn (Builder $query) =>
-                $query->whereHas('user', fn (Builder $user) => $user->onlyTrashed()))
-            ->when(in_array($status, ['active', 'blocked'], true), fn (Builder $query) =>
-                $query->whereHas('user', fn (Builder $user) => $user
-                    ->whereNull('deleted_at')
-                    ->where('status', $status)))
-            ->when($status === '', fn (Builder $query) =>
-                $query->whereHas('user', fn (Builder $user) => $user->whereNull('deleted_at')))
+            ->when($request->string('search')->toString(), fn (Builder $query, string $search) => $query->where(fn (Builder $inner) => $inner
+                ->where('code', 'like', "%{$search}%")
+                ->orWhereHas('user', fn (Builder $user) => $user
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%"))))
+            ->when($request->integer('parish_id'), fn (Builder $query, int $parishId) => $query->where('parish_id', $parishId))
+            ->when($status === 'archived', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user->onlyTrashed()))
+            ->when(in_array($status, ['active', 'blocked'], true), fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user
+                ->whereNull('deleted_at')
+                ->where('status', $status)))
+            ->when($status === '', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user->whereNull('deleted_at')))
             ->when(
                 $sort === 'name',
                 fn (Builder $query) => $query->orderBy(

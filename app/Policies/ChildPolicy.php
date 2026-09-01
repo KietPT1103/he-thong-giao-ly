@@ -4,11 +4,14 @@ namespace App\Policies;
 
 use App\Models\Child;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ChildPolicy
 {
-    public function before(User $user, string $ability): bool|null { return $user->hasPermissionTo('manage-users') ? true : null; }
+    public function before(User $user, string $ability): ?bool
+    {
+        return $user->hasPermissionTo('manage-users') ? true : null;
+    }
+
     /**
      * Determine whether the user can view any models.
      */
@@ -22,7 +25,7 @@ class ChildPolicy
      */
     public function view(User $user, Child $child): bool
     {
-        return ($user->can('view-children') && $user->teacherProfile?->classes()->whereHas('enrollments',fn($q)=>$q->where('child_id',$child->id))->exists()) || $user->parentProfile?->children()->whereKey($child)->exists() || $user->child?->is($child);
+        return ($user->can('view-children') && $user->teacherProfile?->classes()->whereHas('enrollments', fn ($q) => $q->where('child_id', $child->id))->exists()) || $user->parentProfile?->children()->whereKey($child)->exists() || $user->child?->is($child);
     }
 
     /**

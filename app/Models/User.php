@@ -87,6 +87,18 @@ class User extends Authenticatable
         return $this->hasOne(UserAvatar::class);
     }
 
+    public function createdAssignments()
+    {
+        return $this->hasMany(Assignment::class, 'created_by');
+    }
+
+    public function receivedAnnouncements()
+    {
+        return $this->belongsToMany(Announcement::class, 'announcement_recipients')
+            ->withPivot(['read_at', 'acknowledged_at', 'reminded_at'])
+            ->withTimestamps();
+    }
+
     public function avatarUrl(): ?string
     {
         if (! $this->avatar_path) {

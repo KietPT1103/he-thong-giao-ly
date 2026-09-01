@@ -216,6 +216,7 @@ const notices = [
 
 const open = ref(false);
 const auth = useAuthStore();
+const homeHeroParishImage = 'url("/images/home-hero-parish.png")';
 const systemDestination = computed(() =>
     auth.isAuthenticated ? dashboardFor(auth.roles) : "/login",
 );
@@ -237,7 +238,7 @@ function onKey(event: KeyboardEvent) {
 </script>
 
 <template>
-    <div class="home-page">
+    <div class="home-page" :style="{ '--home-hero-parish-image': homeHeroParishImage }">
         <header class="site-header">
             <div class="page-width header-inner">
                 <a
@@ -760,7 +761,7 @@ function onKey(event: KeyboardEvent) {
             rgba(248, 253, 255, 0.5) 60%,
             transparent 100%
         ),
-        url("/images/home-hero-parish.png");
+        var(--home-hero-parish-image);
     background-position: center 68%;
     background-size: cover;
 }
@@ -1375,7 +1376,7 @@ footer {
                 rgba(247, 252, 255, 0.97) 0 44%,
                 rgba(247, 252, 255, 0.2) 76%
             ),
-            url("/images/home-hero-parish.png");
+            var(--home-hero-parish-image);
         background-position: 25% bottom;
     }
     .hero-copy {
@@ -1999,7 +2000,7 @@ footer {
                 rgba(247, 252, 255, 0.98) 58%,
                 transparent 78%
             ),
-            url("/images/home-hero-parish.png");
+            var(--home-hero-parish-image);
         background-position: left center;
         background-repeat: no-repeat;
         background-size: 900px auto;

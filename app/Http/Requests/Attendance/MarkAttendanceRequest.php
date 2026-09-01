@@ -1,1 +1,20 @@
-<?php namespace App\Http\Requests\Attendance; use App\Enums\AttendanceStatus; use Illuminate\Foundation\Http\FormRequest; use Illuminate\Validation\Rule; class MarkAttendanceRequest extends FormRequest { public function authorize():bool{return true;} public function rules():array{return ['attendances'=>['required','array','min:1'],'attendances.*.child_id'=>['required','integer','exists:children,id'],'attendances.*.status'=>['required',Rule::enum(AttendanceStatus::class)],'attendances.*.note'=>['nullable','string','max:1000']];} }
+<?php
+
+namespace App\Http\Requests\Attendance;
+
+use App\Enums\AttendanceStatus;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class MarkAttendanceRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return ['attendances' => ['required', 'array', 'min:1'], 'attendances.*.child_id' => ['required', 'integer', 'exists:children,id'], 'attendances.*.status' => ['required', Rule::enum(AttendanceStatus::class)], 'attendances.*.note' => ['nullable', 'string', 'max:1000']];
+    }
+}
