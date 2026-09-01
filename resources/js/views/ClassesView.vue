@@ -1132,7 +1132,15 @@ watch(childSearch, () => {
     }
 
     .class-content-grid {
-        grid-template-columns: minmax(0, 1fr) 320px;
+        grid-template-columns: 1fr;
+    }
+
+    .class-detail-aside {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .attendance-callout {
+        grid-column: 1 / -1;
     }
 
     .student-directory-header {
@@ -1145,8 +1153,10 @@ watch(childSearch, () => {
     }
 
     .student-filters {
-        flex: 1;
-        width: 100%;
+        min-width: 0;
+        flex: 1 1 0;
+        width: auto;
+        grid-template-columns: minmax(0, 1fr) minmax(130px, 0.55fr);
     }
 }
 
@@ -1174,17 +1184,6 @@ watch(childSearch, () => {
         border-left: 0;
     }
 
-    .class-content-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .class-detail-aside {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .attendance-callout {
-        grid-column: 1 / -1;
-    }
 }
 
 @media (max-width: 767px) {

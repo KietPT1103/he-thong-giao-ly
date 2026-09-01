@@ -32,4 +32,7 @@ tests/*
 tests/Feature/*
 !tests/Feature/AdminFamilyManagementTest.php
 !tests/Feature/QrAttendanceTest.php
+!tests/Unit/
+tests/Unit/*
+!tests/Unit/PostgresConfigurationTest.php
 tasks/
