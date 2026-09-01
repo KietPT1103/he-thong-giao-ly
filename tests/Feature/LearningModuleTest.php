@@ -251,6 +251,65 @@ class LearningModuleTest extends TestCase
             ->assertStatus(409)->assertJsonPath('code', 'VERSION_CONFLICT');
     }
 
+    public function test_teacher_can_save_an_incomplete_draft_but_cannot_publish_it(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $class = $teacher->teacherProfile->classes()->firstOrFail();
+        $draft = $this->validAssignmentPayload($class->id);
+        $draft['save_as_draft'] = true;
+        $draft['targets'] = [];
+        $draft['questions'] = [[
+            'type' => 'single_choice',
+            'prompt' => '',
+            'points' => 1,
+            'position' => 1,
+            'options' => [
+                ['content' => '', 'is_correct' => true],
+                ['content' => '', 'is_correct' => false],
+            ],
+        ]];
+
+        $assignmentId = $this->actingAs($teacher)
+            ->postJson('/api/teacher/assignments', $draft)
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.questions.0.prompt', '')
+            ->assertJsonCount(0, 'data.targets')
+            ->json('data.id');
+
+        $this->actingAs($teacher)
+            ->getJson('/api/teacher/assignments')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $assignmentId, 'title' => $draft['title']]);
+
+        $this->actingAs($teacher)
+            ->postJson("/api/teacher/assignments/{$assignmentId}/publish")
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'ASSIGNMENT_INCOMPLETE');
+
+        $draftWithRecipient = $draft;
+        $draftWithRecipient['targets'] = $this->validAssignmentPayload($class->id)['targets'];
+        $incompleteQuestionAssignmentId = $this->actingAs($teacher)
+            ->postJson('/api/teacher/assignments', $draftWithRecipient)
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.targets')
+            ->json('data.id');
+
+        $this->actingAs($teacher)
+            ->postJson("/api/teacher/assignments/{$incompleteQuestionAssignmentId}/publish")
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'ASSIGNMENT_INCOMPLETE');
+
+        unset($draft['save_as_draft']);
+        $this->actingAs($teacher)
+            ->postJson('/api/teacher/assignments', $draft)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'targets', 'questions.0.prompt',
+                'questions.0.options.0.content', 'questions.0.options.1.content',
+            ]);
+    }
+
     public function test_teacher_cannot_target_a_class_they_are_not_assigned_to(): void
     {
         $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();

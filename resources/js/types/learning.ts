@@ -105,6 +105,7 @@ export interface Assignment {
     submissions_count?: number;
 }
 export interface AssignmentInput {
+    save_as_draft?: boolean;
     title: string;
     description: string;
     type: Assignment["type"];

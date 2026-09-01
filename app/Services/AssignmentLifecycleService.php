@@ -22,7 +22,7 @@ class AssignmentLifecycleService
             if ($locked->status !== Assignment::STATUS_DRAFT) {
                 throw new DomainException('ASSIGNMENT_ALREADY_PUBLISHED');
             }
-            if (! $locked->questions()->exists() || ! $locked->targets()->exists()) {
+            if ($this->isIncomplete($locked)) {
                 throw new DomainException('ASSIGNMENT_INCOMPLETE');
             }
 
@@ -66,6 +66,51 @@ class AssignmentLifecycleService
 
             return $locked->fresh()->loadCount(['recipients', 'submissions']);
         });
+    }
+
+    private function isIncomplete(Assignment $assignment): bool
+    {
+        if (! $assignment->targets()->exists()) {
+            return true;
+        }
+
+        $questions = $assignment->questions()
+            ->get(['type', 'prompt', 'points', 'options', 'accepted_answers']);
+        if ($questions->isEmpty()) {
+            return true;
+        }
+
+        foreach ($questions as $question) {
+            if (trim((string) $question->prompt) === '' || (float) $question->points <= 0) {
+                return true;
+            }
+
+            if (in_array($question->type, ['single_choice', 'multiple_choice', 'true_false'], true)) {
+                $options = collect($question->options ?? []);
+                $correctCount = $options->where('is_correct', true)->count();
+                $hasBlankOption = $options->contains(
+                    fn (array $option) => trim((string) ($option['content'] ?? '')) === '',
+                );
+                $invalidAnswers = $options->count() < 2
+                    || $hasBlankOption
+                    || ($question->type === 'single_choice' && $correctCount !== 1)
+                    || ($question->type === 'multiple_choice' && $correctCount < 1)
+                    || ($question->type === 'true_false' && ($options->count() !== 2 || $correctCount !== 1));
+                if ($invalidAnswers) {
+                    return true;
+                }
+            }
+
+            if ($question->type === 'short_answer') {
+                $acceptedAnswers = collect($question->accepted_answers ?? [])
+                    ->filter(fn ($answer) => trim((string) $answer) !== '');
+                if ($acceptedAnswers->isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function changeDueDate(Request $request, Assignment $assignment, $dueAt): Assignment

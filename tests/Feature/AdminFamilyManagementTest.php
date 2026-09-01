@@ -142,6 +142,23 @@ class AdminFamilyManagementTest extends TestCase
         $this->assertDatabaseHas('activity_logs', ['action' => 'child.updated', 'subject_id' => $childId]);
     }
 
+    public function test_admin_child_options_include_classes_from_the_current_academic_year(): void
+    {
+        $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();
+        $class = CatechismClass::query()
+            ->whereHas('academicYear', fn ($query) => $query->where('is_current', true))
+            ->firstOrFail();
+
+        $this->actingAs($admin)
+            ->getJson('/api/admin/children/options')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $class->id,
+                'name' => $class->name,
+                'code' => $class->code,
+            ]);
+    }
+
     public function test_child_class_assignment_rejects_a_class_from_another_parish(): void
     {
         $admin = User::where('email', 'admin@giaoly.test')->firstOrFail();

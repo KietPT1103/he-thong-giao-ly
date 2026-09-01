@@ -101,4 +101,27 @@ class AttendanceFlowTest extends TestCase
             ->assertJsonPath('data.sessions.total', 1)
             ->assertJsonPath('data.session_history_total', $historyTotal);
     }
+
+    public function test_assigned_teacher_can_view_attendance_accounts_in_a_session(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $session = AttendanceSession::query()
+            ->whereIn('catechism_class_id', $teacher->teacherProfile->classes()->pluck('catechism_classes.id'))
+            ->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->getJson("/api/attendance-sessions/{$session->id}")
+            ->assertOk()
+            ->assertJsonPath('data.catechism_class.id', $session->catechism_class_id)
+            ->assertJsonPath('data.attendances.0.child.email', 'child@giaoly.test')
+            ->assertJsonStructure([
+                'data' => [
+                    'id', 'held_at', 'status',
+                    'attendances' => ['*' => [
+                        'id', 'status', 'arrived_at', 'note',
+                        'child' => ['id', 'code', 'full_name', 'email', 'avatar_url'],
+                    ]],
+                ],
+            ]);
+    }
 }

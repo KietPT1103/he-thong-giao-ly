@@ -13,9 +13,9 @@ import AButton from "ant-design-vue/es/button";
 import AModal from "ant-design-vue/es/modal";
 import APagination from "ant-design-vue/es/pagination";
 import ASelect from "ant-design-vue/es/select";
-import { CalendarDays, CheckCircle2, CircleOff, Clock3, Plus, UsersRound } from "lucide-vue-next";
+import { CalendarDays, CheckCircle2, CircleOff, Clock3, Mail, Plus, UserRound, UsersRound } from "lucide-vue-next";
 import { toast } from "vue-sonner";
-import { cancelAttendanceSession, deleteAttendanceSession, getAttendanceSessions, getTeacherClasses, type AttendanceSessionPage } from "../api/teacher";
+import { cancelAttendanceSession, deleteAttendanceSession, getAttendanceSession, getAttendanceSessions, getTeacherClasses, type AttendanceSessionPage } from "../api/teacher";
 import AttendanceSectionNav from "../components/attendance/AttendanceSectionNav.vue";
 import AttendanceSessionActions from "../components/attendance/AttendanceSessionActions.vue";
 import type { AttendanceSession, CatechismClass } from "../types/api";
@@ -32,6 +32,10 @@ const loading = ref(true);
 const actionSessionId = ref<number | null>(null);
 const actionKind = ref<SessionAction | null>(null);
 const error = ref("");
+const detailOpen = ref(false);
+const detailLoading = ref(false);
+const detailError = ref("");
+const selectedSession = ref<AttendanceSession | null>(null);
 const meta = ref<Pick<AttendanceSessionPage, "current_page" | "last_page" | "per_page" | "total">>({ current_page: 1, last_page: 1, per_page: 15, total: 0 });
 
 const selectedClass = computed(() => classes.value.find(item => item.id === Number(classId.value)));
@@ -53,6 +57,21 @@ function statusLabel(status: AttendanceSession["status"]) {
     if (status === "active") return "Đang diễn ra";
     if (status === "cancelled") return "Đã hủy";
     return "Đã kết thúc";
+}
+function attendanceStatusLabel(status: AttendanceSession["attendances"][number]["status"]) {
+    const labels = {
+        present: "Có mặt",
+        late: "Đi trễ",
+        excused_absence: "Vắng có phép",
+        unexcused_absence: "Vắng không phép",
+        left_early: "Về sớm",
+        unknown: "Chưa xác định",
+    } as const;
+    return labels[status];
+}
+function formatArrival(value?: string | null) {
+    if (!value) return "Chưa ghi nhận";
+    return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 async function loadClasses() {
@@ -78,7 +97,19 @@ async function loadSessions(page = 1) {
     finally { loading.value = false; }
 }
 function setFilter(value: StatusFilter) { filter.value = value; void loadSessions(1); }
-function openSession(session: AttendanceSession) { void router.push({ path: "/teacher/attendance", query: { class: session.catechism_class_id, session: session.id } }); }
+async function openSession(session: AttendanceSession) {
+    selectedSession.value = session;
+    detailError.value = "";
+    detailOpen.value = true;
+    detailLoading.value = true;
+    try {
+        selectedSession.value = (await getAttendanceSession(session.id)).data.data;
+    } catch {
+        detailError.value = "Không thể tải danh sách điểm danh của phiên này. Hãy thử lại.";
+    } finally {
+        detailLoading.value = false;
+    }
+}
 function openNewSession() { if (classId.value) void router.push({ path: "/teacher/attendance", query: { class: classId.value, new: "1" } }); }
 function beginAction(session: AttendanceSession, kind: SessionAction) {
     actionSessionId.value = session.id;
@@ -163,6 +194,32 @@ onMounted(loadClasses);
             </div>
             <footer v-if="meta.total>meta.per_page" class="session-pagination"><span>{{ meta.total }} phiên</span><APagination :current="meta.current_page" :page-size="meta.per_page" :total="meta.total" :show-size-changer="false" responsive @change="loadSessions" /></footer>
         </section>
+
+        <AModal v-model:open="detailOpen" width="760px" :footer="null" centered wrap-class-name="attendance-detail-modal">
+            <template #title>
+                <div class="detail-modal-title">
+                    <span><UsersRound aria-hidden="true" /></span>
+                    <div>
+                        <strong>Danh sách tài khoản đã điểm danh</strong>
+                        <small v-if="selectedSession">{{ formatSession(selectedSession.held_at) }} · {{ selectedSession.catechism_class?.name || selectedClass?.name }}</small>
+                    </div>
+                </div>
+            </template>
+            <div class="detail-modal-body" aria-live="polite">
+                <div v-if="detailLoading" class="detail-loading" aria-busy="true" aria-label="Đang tải chi tiết phiên"><span v-for="item in 3" :key="item" /></div>
+                <AAlert v-else-if="detailError" type="error" show-icon :message="detailError" />
+                <div v-else-if="!selectedSession?.attendances.length" class="detail-empty"><UsersRound aria-hidden="true" /><strong>Chưa có dữ liệu điểm danh</strong><p>Phiên này chưa ghi nhận tài khoản Thiếu nhi nào.</p></div>
+                <div v-else class="attendance-detail-list" role="table" aria-label="Tài khoản trong phiên điểm danh">
+                    <div class="attendance-detail-head" role="row"><span>Thiếu nhi</span><span>Tài khoản</span><span>Trạng thái</span><span>Giờ ghi nhận</span></div>
+                    <div v-for="attendance in selectedSession.attendances" :key="attendance.id" class="attendance-detail-row" role="row">
+                        <div class="detail-child"><span class="detail-avatar"><UserRound aria-hidden="true" /></span><div><strong>{{ attendance.child?.full_name || `Thiếu nhi #${attendance.child_id}` }}</strong><small>{{ attendance.child?.code || 'Chưa có mã' }}</small></div></div>
+                        <div class="detail-account"><Mail aria-hidden="true" /><span>{{ attendance.child?.email || 'Chưa có tài khoản đăng nhập' }}</span></div>
+                        <span><em class="attendance-status" :class="`attendance-${attendance.status}`">{{ attendanceStatusLabel(attendance.status) }}</em></span>
+                        <div class="detail-arrival"><Clock3 aria-hidden="true" /><div><span>{{ formatArrival(attendance.arrived_at) }}</span><small v-if="attendance.note">{{ attendance.note }}</small></div></div>
+                    </div>
+                </div>
+            </div>
+        </AModal>
     </section>
 </template>
 
@@ -504,6 +561,203 @@ onMounted(loadClasses);
     animation: session-loading 1.4s infinite;
 }
 
+.detail-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding-right: 28px;
+}
+
+.detail-modal-title > span {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    place-items: center;
+    border-radius: 10px;
+    background: #eaf2ff;
+    color: #2563eb;
+}
+
+.detail-modal-title svg {
+    width: 19px;
+}
+
+.detail-modal-title strong,
+.detail-modal-title small {
+    display: block;
+}
+
+.detail-modal-title strong {
+    color: #172554;
+    font-size: 16px;
+}
+
+.detail-modal-title small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.detail-modal-body {
+    min-height: 220px;
+}
+
+.attendance-detail-list {
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.attendance-detail-head,
+.attendance-detail-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.2fr) minmax(190px, 1fr) 130px 130px;
+    align-items: center;
+    gap: 14px;
+    padding-inline: 16px;
+}
+
+.attendance-detail-head {
+    min-height: 42px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #52627c;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.attendance-detail-row {
+    min-height: 68px;
+    border-bottom: 1px solid #edf1f6;
+    color: #334155;
+    font-size: 12px;
+}
+
+.attendance-detail-row:last-child {
+    border-bottom: 0;
+}
+
+.detail-child,
+.detail-account,
+.detail-arrival {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-avatar {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: 50%;
+    background: #eef4ff;
+    color: #2563eb;
+}
+
+.detail-avatar svg,
+.detail-account svg,
+.detail-arrival svg {
+    width: 15px;
+    flex: none;
+}
+
+.detail-child strong,
+.detail-child small,
+.detail-arrival span,
+.detail-arrival small {
+    display: block;
+}
+
+.detail-child strong {
+    overflow: hidden;
+    color: #172554;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.detail-child small,
+.detail-arrival small {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 10px;
+}
+
+.detail-account {
+    color: #52627c;
+}
+
+.detail-account span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attendance-status {
+    display: inline-flex;
+    min-height: 28px;
+    align-items: center;
+    border-radius: 999px;
+    background: #eef2f7;
+    padding: 5px 9px;
+    color: #475569;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.attendance-present { background: #e9f9ef; color: #147a45; }
+.attendance-late,
+.attendance-left_early { background: #fff7e8; color: #9a4b08; }
+.attendance-excused_absence { background: #eff6ff; color: #1d4ed8; }
+.attendance-unexcused_absence { background: #fff1f2; color: #b42334; }
+
+.detail-arrival {
+    align-items: flex-start;
+    color: #52627c;
+}
+
+.detail-loading {
+    display: grid;
+    gap: 8px;
+}
+
+.detail-loading span {
+    height: 64px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #eef2f7 20%, #f8fafc 50%, #eef2f7 80%);
+    background-size: 200% 100%;
+    animation: session-loading 1.4s infinite;
+}
+
+.detail-empty {
+    display: grid;
+    min-height: 220px;
+    place-items: center;
+    align-content: center;
+    gap: 7px;
+    color: #64748b;
+    text-align: center;
+}
+
+.detail-empty > svg {
+    width: 36px;
+}
+
+.detail-empty strong { color: #172554; }
+.detail-empty p { margin: 0; font-size: 12px; }
+
+:global(.attendance-detail-modal .ant-modal-content) {
+    border-radius: 14px;
+    padding: 22px;
+}
+
 @keyframes session-loading {
     to { background-position: -200% 0; }
 }
@@ -618,6 +872,37 @@ onMounted(loadClasses);
 
     .session-pagination :deep(.ant-pagination) {
         align-self: flex-end;
+    }
+}
+
+@media (max-width: 640px) {
+    :global(.attendance-detail-modal .ant-modal) {
+        max-width: calc(100vw - 24px);
+        margin: 12px auto;
+    }
+
+    .attendance-detail-head {
+        display: none;
+    }
+
+    .attendance-detail-list {
+        display: grid;
+        gap: 9px;
+        border: 0;
+    }
+
+    .attendance-detail-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        min-height: 0;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 11px;
+        padding: 13px;
+    }
+
+    .detail-account,
+    .detail-arrival {
+        grid-column: 1 / -1;
     }
 }
 

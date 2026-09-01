@@ -30,9 +30,14 @@ class TeacherAssignmentController extends ApiController
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
         $teacherId = $request->user()->teacherProfile->id;
+        $userId = $request->user()->id;
         $search = trim((string) ($data['search'] ?? ''));
         $assignments = Assignment::query()
-            ->whereHas('targets.catechismClass.teachers', fn ($query) => $query->where('teacher_profiles.id', $teacherId))
+            ->where(fn ($query) => $query
+                ->whereHas('targets.catechismClass.teachers', fn ($classes) => $classes->where('teacher_profiles.id', $teacherId))
+                ->orWhere(fn ($drafts) => $drafts
+                    ->where('created_by', $userId)
+                    ->where('status', Assignment::STATUS_DRAFT)))
             ->when($search, fn ($query) => $query->where(fn ($filtered) => $filtered
                 ->where('title', 'like', "%{$search}%")
                 ->orWhere('description', 'like', "%{$search}%")))
@@ -49,19 +54,20 @@ class TeacherAssignmentController extends ApiController
     public function store(UpsertAssignmentRequest $request)
     {
         $data = $request->validated();
-        if ($error = $this->targetScopeError($request, $data['targets'])) {
+        $targets = $data['targets'] ?? [];
+        if ($error = $this->targetScopeError($request, $targets)) {
             return $error;
         }
 
         $assignment = DB::transaction(function () use ($request, $data) {
             $assignment = Assignment::create([
-                ...Arr::except($data, ['targets', 'questions', 'version']),
+                ...Arr::except($data, ['targets', 'questions', 'version', 'save_as_draft']),
                 'created_by' => $request->user()->id,
             ]);
             $this->syncStructure($request, $assignment, $data);
             $this->auditLogger->record($request, 'assignment.created', $assignment, null, [
-                'title' => $assignment->title, 'target_count' => count($data['targets']),
-                'question_count' => count($data['questions']),
+                'title' => $assignment->title, 'target_count' => count($data['targets'] ?? []),
+                'question_count' => count($data['questions'] ?? []),
             ]);
 
             return $assignment;
@@ -99,14 +105,14 @@ class TeacherAssignmentController extends ApiController
                 'code' => 'ASSIGNMENT_CONTENT_LOCKED',
             ], 422);
         }
-        if ($error = $this->targetScopeError($request, $data['targets'])) {
+        if ($error = $this->targetScopeError($request, $data['targets'] ?? [])) {
             return $error;
         }
 
         DB::transaction(function () use ($request, $assignment, $data) {
             $old = $assignment->only(['title', 'status', 'due_at', 'version']);
             $assignment->update([
-                ...Arr::except($data, ['targets', 'questions', 'version']),
+                ...Arr::except($data, ['targets', 'questions', 'version', 'save_as_draft']),
                 'version' => $assignment->version + 1,
             ]);
             $this->syncStructure($request, $assignment, $data);
@@ -227,18 +233,29 @@ class TeacherAssignmentController extends ApiController
     private function syncStructure(Request $request, Assignment $assignment, array $data): void
     {
         $assignment->questions()->delete();
-        foreach ($data['questions'] as $question) {
+        foreach ($data['questions'] ?? [] as $question) {
             if (! empty($question['source_question_id'])) {
                 $source = QuestionBankItem::findOrFail($question['source_question_id']);
                 abort_unless($request->user()->can('view', $source), 403);
             }
+            $question['prompt'] = $question['prompt'] ?? '';
+            $question['options'] = collect($question['options'] ?? [])->map(fn ($option) => [
+                ...$option,
+                'content' => $option['content'] ?? '',
+            ])->all();
+            $question['accepted_answers'] = collect($question['accepted_answers'] ?? [])
+                ->map(fn ($answer) => $answer ?? '')->all();
+            $question['rubric'] = collect($question['rubric'] ?? [])->map(fn ($item) => [
+                ...$item,
+                'label' => $item['label'] ?? '',
+            ])->all();
             $assignment->questions()->create(Arr::only($question, [
                 'source_question_id', 'type', 'prompt', 'explanation', 'points',
                 'position', 'options', 'accepted_answers', 'rubric', 'settings',
             ]));
         }
         $assignment->targets()->delete();
-        foreach ($data['targets'] as $target) {
+        foreach ($data['targets'] ?? [] as $target) {
             $children = $target['child_ids'];
             if ($children === []) {
                 $children = [null];

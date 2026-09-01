@@ -64,6 +64,7 @@ export interface Child {
     id: number;
     code: string;
     full_name: string;
+    email?: string | null;
     avatar_url: string | null;
     saint_name: string | null;
     date_of_birth: string | null;
@@ -95,6 +96,7 @@ export interface Attendance {
     id: number;
     child_id: number;
     status: AttendanceStatus;
+    arrived_at?: string | null;
     note: string | null;
     child?: Child;
 }

@@ -101,8 +101,18 @@ class AttendanceController extends ApiController
     public function show(AttendanceSession $session)
     {
         $this->authorize('view', $session);
+        $session->load('attendances.child.user:id,email,avatar_path', 'catechismClass');
+        $session->attendances->each(function ($attendance): void {
+            if (! $attendance->child) {
+                return;
+            }
 
-        return $this->success($session->load('attendances.child', 'catechismClass'));
+            $attendance->child->setAttribute('email', $attendance->child->user?->email);
+            $attendance->child->setAttribute('avatar_url', $attendance->child->user?->avatarUrl());
+            $attendance->child->unsetRelation('user');
+        });
+
+        return $this->success($session);
     }
 
     public function mark(MarkAttendanceRequest $request, AttendanceSession $session, AttendanceService $service)

@@ -13,8 +13,9 @@ import ASelect from "ant-design-vue/es/select";
 import ASkeleton from "ant-design-vue/es/skeleton";
 import ATag from "ant-design-vue/es/tag";
 import {
-    ArrowLeft, CalendarDays, Clock3, Pencil, RotateCcw, Save,
-    UserRoundCheck, UsersRound,
+    ArrowLeft, BookOpen, Building2, CalendarDays, CheckCircle2, Clock3,
+    DoorOpen, GraduationCap, Hash, Info, Pencil, RotateCcw, Save,
+    UserRoundCheck, UsersRound, X,
 } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import {
@@ -43,7 +44,6 @@ const enrollmentOpen = ref(false);
 const scheduleOpen = ref(false);
 const action = ref<"restore"|null>(null);
 const actionError = ref("");
-const activeSection = ref("info");
 const form = reactive({
     name:"", code:"", parish_id:undefined as number|undefined,
     academic_year_id:undefined as number|undefined,
@@ -188,39 +188,34 @@ async function confirmAction() {
 function closeTeacherModal() { if (!saving.value) teacherOpen.value = false; }
 function closeEnrollmentModal() { if (!saving.value) enrollmentOpen.value = false; }
 function closeScheduleModal() { if (!saving.value) scheduleOpen.value = false; }
-function goToSection(section:string) {
-    activeSection.value = section;
-    document.getElementById(`class-section-${section}`)?.scrollIntoView({ block:"start" });
-}
+function resetInfo() { if (model.value && !saving.value) syncForm(model.value); }
 onMounted(load);
 </script>
 
 <template>
     <section class="class-edit-page mx-auto w-full max-w-[1500px]">
-        <header class="class-admin-header">
-            <div class="class-admin-header-row">
-                <div class="class-admin-identity">
-                    <div class="min-w-0">
-                        <p>Đang quản lý</p>
-                        <h1>{{ model?.name || "Đang tải lớp học" }}</h1>
-                        <small v-if="model">{{ model.code }} · {{ model.parish?.name || "Chưa xác định giáo xứ" }} · {{ model.academic_year?.name || "Chưa có niên khóa" }}</small>
-                    </div>
-                </div>
-                <div class="class-admin-actions">
-                    <ATag v-if="model" :color="archived ? 'default' : model.status === 'active' ? 'success' : 'warning'">{{ archived ? "Đã lưu trữ" : model.status === "active" ? "Đang hoạt động" : "Tạm ngưng" }}</ATag>
-                    <AButton v-if="model && archived" :loading="saving" @click="action='restore'"><template #icon><RotateCcw class="size-4" /></template>Khôi phục</AButton>
-                    <AButton class="class-back-button" aria-label="Quay lại danh sách lớp học" @click="router.push('/admin/classes')">
-                        <template #icon><ArrowLeft class="size-4" /></template>
-                        Quay lại danh sách
-                    </AButton>
+        <header class="class-admin-hero">
+            <div class="class-hero-icon" aria-hidden="true">
+                <BookOpen />
+                <span><UsersRound /></span>
+            </div>
+            <div class="class-admin-identity">
+                <p>Đang quản lý</p>
+                <h2>{{ model?.name || "Đang tải lớp học" }}</h2>
+                <div v-if="model" class="class-meta" aria-label="Thông tin tóm tắt lớp học">
+                    <span>{{ model.code }}</span><i />
+                    <span>{{ model.parish?.name || "Chưa xác định giáo xứ" }}</span><i />
+                    <span>{{ model.academic_year?.name || "Chưa có niên khóa" }}</span>
                 </div>
             </div>
-            <nav v-if="model" class="class-section-nav" aria-label="Các phần thông tin lớp học">
-                <button :class="{active:activeSection==='info'}" type="button" @click="goToSection('info')"><span>1</span>Thông tin chung</button>
-                <button :class="{active:activeSection==='children'}" type="button" @click="goToSection('children')"><span>2</span>Danh sách thiếu nhi</button>
-                <button :class="{active:activeSection==='teachers'}" type="button" @click="goToSection('teachers')"><span>3</span>Giáo lý viên</button>
-                <button :class="{active:activeSection==='schedule'}" type="button" @click="goToSection('schedule')"><span>4</span>Lịch học định kỳ</button>
-            </nav>
+            <div class="class-admin-actions">
+                <ATag v-if="model" class="class-status" :color="archived ? 'default' : model.status === 'active' ? 'success' : 'warning'">{{ archived ? "Đã lưu trữ" : model.status === "active" ? "Đang hoạt động" : "Tạm ngưng" }}</ATag>
+                <AButton v-if="model && archived" :loading="saving" @click="action='restore'"><template #icon><RotateCcw /></template>Khôi phục</AButton>
+                <AButton class="class-back-button" aria-label="Quay lại danh sách lớp học" @click="router.push('/admin/classes')">
+                    <template #icon><ArrowLeft /></template>
+                    Quay lại danh sách
+                </AButton>
+            </div>
         </header>
 
         <AAlert v-if="pageError" type="error" show-icon :message="pageError" class="mb-4"><template #action><AButton size="small" @click="load">Thử lại</AButton></template></AAlert>
@@ -228,34 +223,53 @@ onMounted(load);
 
         <template v-else-if="model">
             <AAlert v-if="archived" type="warning" show-icon message="Lớp đã được lưu trữ. Khôi phục lớp trước khi thay đổi thông tin, thành viên hoặc lịch học." class="mb-4" />
-            <ACard id="class-section-info" :bordered="false" class="admin-card edit-info-card class-scroll-section">
-                    <div class="section-heading">
-                        <span><Pencil /></span>
-                        <div><h2>Thông tin chung</h2><p>Cập nhật tên, tổ chức, niên khóa và phòng học của lớp.</p></div>
+            <ACard :bordered="false" class="admin-card edit-info-card">
+                <div class="section-heading">
+                    <h2>Thông tin lớp học</h2>
+                    <p>Cập nhật các thông tin, cấu hình và trạng thái của lớp học.</p>
+                </div>
+                <AForm ref="formRef" :model="form" :disabled="saving || archived" layout="vertical" @finish="saveInfo">
+                    <div class="edit-form-grid">
+                        <AFormItem label="Tên lớp" name="name" :rules="[{required:true,message:'Hãy nhập tên lớp.'}]" :help="formErrors.name" :validate-status="formErrors.name?'error':undefined">
+                            <AInput v-model:value="form.name" size="large" placeholder="Ví dụ: Thiếu Nhi 1A"><template #prefix><Pencil class="control-icon" aria-hidden="true" /></template></AInput>
+                        </AFormItem>
+                        <AFormItem label="Mã lớp" name="code" :rules="[{required:true,message:'Hãy nhập mã lớp.'}]" :help="formErrors.code" :validate-status="formErrors.code?'error':undefined">
+                            <AInput v-model:value="form.code" size="large" placeholder="Ví dụ: TN-1A"><template #prefix><Hash class="control-icon" aria-hidden="true" /></template></AInput>
+                        </AFormItem>
+                        <AFormItem label="Giáo xứ">
+                            <div class="select-with-icon"><Building2 aria-hidden="true" /><ASelect v-model:value="form.parish_id" size="large" disabled :options="optionList(options.parishes)" /></div>
+                        </AFormItem>
+                        <AFormItem label="Trạng thái" name="status" required>
+                            <div class="select-with-icon"><CheckCircle2 aria-hidden="true" /><ASelect v-model:value="form.status" size="large" :options="[{value:'active',label:'Đang hoạt động'},{value:'inactive',label:'Tạm ngưng'}]" /></div>
+                        </AFormItem>
+                        <AFormItem label="Niên khóa" name="academic_year_id" :rules="[{required:true,message:'Hãy chọn niên khóa.'}]" :help="formErrors.academic_year_id" :validate-status="formErrors.academic_year_id?'error':undefined">
+                            <div class="select-with-icon"><CalendarDays aria-hidden="true" /><ASelect v-model:value="form.academic_year_id" size="large" :options="optionList(options.academic_years)" /></div>
+                        </AFormItem>
+                        <AFormItem label="Khối giáo lý" name="catechism_level_id" :rules="[{required:true,message:'Hãy chọn khối giáo lý.'}]" :help="formErrors.catechism_level_id" :validate-status="formErrors.catechism_level_id?'error':undefined">
+                            <div class="select-with-icon"><GraduationCap aria-hidden="true" /><ASelect v-model:value="form.catechism_level_id" size="large" :options="optionList(options.levels)" /></div>
+                        </AFormItem>
+                        <AFormItem class="edit-room-field" label="Phòng học" name="classroom_id" :help="formErrors.classroom_id" :validate-status="formErrors.classroom_id?'error':undefined">
+                            <div class="select-with-icon"><DoorOpen aria-hidden="true" /><ASelect v-model:value="form.classroom_id" allow-clear size="large" placeholder="Chưa xếp phòng" :options="optionList(options.classrooms)" /></div>
+                        </AFormItem>
                     </div>
-                    <AForm ref="formRef" :model="form" :disabled="saving || archived" layout="vertical" @finish="saveInfo">
-                        <div class="edit-form-grid">
-                            <AFormItem label="Tên lớp" name="name" :rules="[{required:true,message:'Hãy nhập tên lớp.'}]" :help="formErrors.name" :validate-status="formErrors.name?'error':undefined"><AInput v-model:value="form.name" size="large" placeholder="Ví dụ: Thiếu Nhi 1A" /></AFormItem>
-                            <AFormItem label="Mã lớp" name="code" :rules="[{required:true,message:'Hãy nhập mã lớp.'}]" :help="formErrors.code" :validate-status="formErrors.code?'error':undefined"><AInput v-model:value="form.code" size="large" placeholder="Ví dụ: TN-1A" /></AFormItem>
-                            <AFormItem label="Giáo xứ"><ASelect v-model:value="form.parish_id" size="large" disabled :options="optionList(options.parishes)" /></AFormItem>
-                            <AFormItem label="Trạng thái" name="status" required><ASelect v-model:value="form.status" size="large" :options="[{value:'active',label:'Đang hoạt động'},{value:'inactive',label:'Tạm ngưng'}]" /></AFormItem>
-                            <AFormItem label="Niên khóa" name="academic_year_id" :rules="[{required:true,message:'Hãy chọn niên khóa.'}]" :help="formErrors.academic_year_id" :validate-status="formErrors.academic_year_id?'error':undefined"><ASelect v-model:value="form.academic_year_id" size="large" :options="optionList(options.academic_years)" /></AFormItem>
-                            <AFormItem label="Khối giáo lý" name="catechism_level_id" :rules="[{required:true,message:'Hãy chọn khối giáo lý.'}]" :help="formErrors.catechism_level_id" :validate-status="formErrors.catechism_level_id?'error':undefined"><ASelect v-model:value="form.catechism_level_id" size="large" :options="optionList(options.levels)" /></AFormItem>
-                            <AFormItem class="edit-room-field" label="Phòng học" name="classroom_id" :help="formErrors.classroom_id" :validate-status="formErrors.classroom_id?'error':undefined"><ASelect v-model:value="form.classroom_id" allow-clear size="large" placeholder="Chưa xếp phòng" :options="optionList(options.classrooms)" /></AFormItem>
-                        </div>
-                        <div class="form-save-row"><AButton type="primary" size="large" html-type="submit" :loading="saving" :disabled="archived"><template #icon><Save class="size-4" /></template>Cập nhật lớp học</AButton></div>
-                    </AForm>
+                    <div class="class-change-note" role="note"><Info aria-hidden="true" /><span><b>Lưu ý</b>Các thay đổi sẽ được áp dụng cho toàn bộ dữ liệu của lớp học này.</span></div>
+                    <div class="form-save-row">
+                        <AButton size="large" :disabled="archived" @click="resetInfo"><template #icon><X /></template>Hủy bỏ</AButton>
+                        <AButton type="primary" size="large" html-type="submit" :loading="saving" :disabled="archived"><template #icon><Save /></template>Cập nhật lớp học</AButton>
+                    </div>
+                </AForm>
             </ACard>
 
             <ACard :bordered="false" class="admin-card class-operations-card">
                 <div class="operations-heading">
-                    <div><h2>Tổ chức lớp học</h2><p>Quản lý thiếu nhi, giáo lý viên phụ trách và lịch học trong một nơi.</p></div>
+                    <h2>Tổng quan lớp học</h2>
+                    <p>Thông tin tổng hợp và thành viên của lớp học.</p>
                 </div>
                 <div class="operations-layout">
-                    <section id="class-section-children" class="roster-section class-scroll-section">
+                    <section class="roster-section">
                         <div class="operation-heading">
                             <div><span><UsersRound /></span><div><h3>Danh sách thiếu nhi</h3><p>{{ model.enrollments_count }} em đang được xếp vào lớp</p></div></div>
-                            <AButton :disabled="archived" @click="enrollmentOpen=true"><template #icon><Pencil class="size-4" /></template>Cập nhật danh sách</AButton>
+                            <AButton :disabled="archived" @click="enrollmentOpen=true"><template #icon><Pencil /></template>Quản lý danh sách</AButton>
                         </div>
                         <div v-if="model.enrollments?.length" class="record-list roster-list">
                             <div v-for="enrollment in model.enrollments" :key="enrollment.id"><i>{{ enrollment.child.full_name.slice(0,1) }}</i><span><b>{{ enrollment.child.full_name }}</b><small>{{ enrollment.child.code }}</small></span><ATag :color="enrollment.status==='active'?'success':'default'">{{ enrollment.status==='active'?'Đang học':'Đã rút' }}</ATag></div>
@@ -264,7 +278,7 @@ onMounted(load);
                     </section>
 
                     <aside class="operations-aside">
-                        <section id="class-section-teachers" class="operation-panel class-scroll-section">
+                        <section class="operation-panel">
                             <div class="operation-heading">
                                 <div><span><UserRoundCheck /></span><div><h3>Giáo lý viên</h3><p>{{ model.teachers_count }} người phụ trách</p></div></div>
                                 <AButton type="text" :disabled="archived" @click="teacherOpen=true">Phân công</AButton>
@@ -272,7 +286,7 @@ onMounted(load);
                             <div v-if="model.teachers?.length" class="record-list compact-record-list"><div v-for="teacher in model.teachers" :key="teacher.id"><i>{{ teacher.name.slice(0,1) }}</i><span><b>{{ teacher.name }}</b><small>{{ teacher.email }}</small></span><ATag>{{ teacher.role === 'primary' ? 'Phụ trách chính' : 'Phụ tá' }}</ATag></div></div>
                             <AEmpty v-else description="Chưa phân công giáo lý viên." class="py-6" />
                         </section>
-                        <section id="class-section-schedule" class="operation-panel class-scroll-section">
+                        <section class="operation-panel">
                             <div class="operation-heading">
                                 <div><span><CalendarDays /></span><div><h3>Lịch học định kỳ</h3><p>{{ model.schedules.length }} khung giờ đã thiết lập</p></div></div>
                                 <AButton type="text" :disabled="archived" @click="scheduleOpen=true">Thiết lập</AButton>
@@ -293,7 +307,689 @@ onMounted(load);
 </template>
 
 <style scoped>
-.class-edit-page{display:grid;gap:1rem}.class-admin-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:1rem;padding:.25rem 0}.class-back-button{align-self:start}.class-admin-identity{display:flex;min-width:0;align-items:center;gap:.8rem}.class-admin-identity>span,.section-heading>span,.overview-heading>span,.operation-heading>div>span{display:grid;width:2.5rem;height:2.5rem;flex:none;place-items:center;border-radius:.7rem;background:#edf4ff;color:#185fce}.class-admin-identity>span{width:3rem;height:3rem;border-radius:.875rem}.class-admin-identity svg,.section-heading svg,.overview-heading svg,.operation-heading svg{width:1.1rem;height:1.1rem}.class-admin-identity p,.class-admin-identity h1,.class-admin-identity small{margin:0}.class-admin-identity p{color:#64748b;font-size:.68rem;font-weight:650}.class-admin-identity h1{overflow:hidden;margin-top:.08rem;color:#0b214d;font-size:1.35rem;font-weight:760;letter-spacing:-.025em;text-overflow:ellipsis;white-space:nowrap}.class-admin-identity small{display:block;overflow:hidden;margin-top:.12rem;color:#64748b;font-size:.7rem;text-overflow:ellipsis;white-space:nowrap}.class-admin-actions{display:flex;align-items:center;justify-content:flex-end;gap:.5rem}.class-loading-card{padding:.5rem}.class-admin-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(16rem,20rem);align-items:start;gap:1rem}.edit-info-card :deep(.ant-card-body){padding:1.25rem}.section-heading,.overview-heading{display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem}.section-heading h2,.section-heading p,.overview-heading h2,.overview-heading p,.operations-heading h2,.operations-heading p,.operation-heading h3,.operation-heading p{margin:0}.section-heading h2,.overview-heading h2,.operations-heading h2,.operation-heading h3{color:#0b214d;font-size:.9rem;font-weight:750}.section-heading p,.overview-heading p,.operations-heading p,.operation-heading p{margin-top:.15rem;color:#64748b;font-size:.7rem;line-height:1.5}.edit-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 1rem}.edit-room-field{grid-column:1/-1}.edit-info-card :deep(.ant-form-item){margin-bottom:1rem}.edit-info-card :deep(.ant-form-item-label>label){color:#334155;font-size:.72rem;font-weight:650}.edit-info-card :deep(.ant-input),.edit-info-card :deep(.ant-select-selector){border-radius:.625rem!important;box-shadow:none!important}.mobile-save-row{display:none}.class-overview-card{position:sticky;top:5.5rem;overflow:hidden;border:1px solid #dbe3ee;border-radius:.875rem;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.03)}.overview-heading{margin:0;padding:1rem;border-bottom:1px solid #e2e8f0}.class-overview-card dl{margin:0;padding:0 1rem}.class-overview-card dl>div{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0;border-bottom:1px solid #eef2f7}.class-overview-card dl>div:last-child{border-bottom:0}.class-overview-card dt{display:flex;align-items:center;gap:.45rem;color:#64748b;font-size:.68rem}.class-overview-card dt svg{width:.9rem;height:.9rem;color:#7c8da6}.class-overview-card dd{overflow:hidden;margin:0;color:#0b214d;font-size:.72rem;font-weight:700;text-align:right;text-overflow:ellipsis;white-space:nowrap}.class-operations-card :deep(.ant-card-body){padding:0}.operations-heading{padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0}.operations-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(20rem,.8fr)}.roster-section{min-width:0;padding:1.25rem;border-right:1px solid #e2e8f0}.operations-aside{min-width:0}.operation-panel{padding:1.25rem}.operation-panel+.operation-panel{border-top:1px solid #e2e8f0}.operation-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1rem}.operation-heading>div{display:flex;min-width:0;align-items:center;gap:.65rem}.operation-heading>div>span{width:2.25rem;height:2.25rem}.record-list,.schedule-records{max-height:24rem;overflow-y:auto;border-top:1px solid #e2e8f0}.record-list>div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.65rem;min-height:3.75rem;border-bottom:1px solid #eef2f7}.record-list i{display:grid;width:2rem;height:2rem;place-items:center;border-radius:.5rem;background:#f1f5f9;color:#475569;font-size:.7rem;font-style:normal;font-weight:700}.record-list span{display:flex;min-width:0;flex-direction:column}.record-list b,.record-list small,.schedule-records b,.schedule-records small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.record-list b,.schedule-records b{color:#1e293b;font-size:.75rem}.record-list small,.schedule-records small{margin-top:.12rem;color:#64748b;font-size:.65rem}.compact-record-list{max-height:13rem}.schedule-records>div{display:flex;align-items:center;gap:.65rem;min-height:3.5rem;border-bottom:1px solid #eef2f7}.schedule-records>div>span{display:grid;width:2rem;height:2rem;flex:none;place-items:center;border-radius:.5rem;background:#f1f5f9;color:#64748b}.schedule-records svg{width:.95rem;height:.95rem}.schedule-records>div>div{display:flex;min-width:0;flex-direction:column}@media(max-width:1399px){.class-admin-header{grid-template-columns:auto minmax(0,1fr)}.class-admin-actions{grid-column:1/-1}}@media(max-width:1199px){.class-admin-layout{grid-template-columns:minmax(0,1fr) 17rem}.operations-layout{grid-template-columns:1fr}.roster-section{border-right:0;border-bottom:1px solid #e2e8f0}.operations-aside{display:grid;grid-template-columns:1fr 1fr}.operation-panel+.operation-panel{border-top:0;border-left:1px solid #e2e8f0}}@media(max-width:767px){.class-admin-header{grid-template-columns:1fr}.class-back-button{justify-self:start}.class-admin-actions{grid-column:auto;flex-wrap:wrap;justify-content:flex-start}.class-admin-actions>.ant-btn-primary{display:none}.class-admin-layout{grid-template-columns:1fr}.class-overview-card{position:static}.edit-form-grid{grid-template-columns:1fr}.edit-room-field{grid-column:auto}.mobile-save-row{display:flex;justify-content:flex-end;padding-top:.25rem}.mobile-save-row .ant-btn{width:100%}.operations-aside{grid-template-columns:1fr}.operation-panel+.operation-panel{border-top:1px solid #e2e8f0;border-left:0}.operation-heading{align-items:flex-start}.roster-section,.operation-panel{padding:1rem}.operations-heading{padding:1rem}}@media(max-width:479px){.class-admin-identity h1{font-size:1.15rem}.class-admin-actions>.ant-tag{width:100%;margin:0;text-align:center}.class-admin-actions>.ant-btn{flex:1}.record-list>div{grid-template-columns:auto minmax(0,1fr)}.record-list>div>.ant-tag{grid-column:2;justify-self:start}.operation-heading{flex-direction:column}.operation-heading>.ant-btn{width:100%}}
-.class-admin-header{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:1.5rem;padding:1rem 1.125rem;border:1px solid #dbe3ee;border-radius:.875rem;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.03)}.class-admin-header-main{display:flex;min-width:0;align-items:center;gap:1rem}.class-back-button{align-self:auto;flex:none}.class-header-divider{width:1px;height:2.75rem;flex:none;background:#e2e8f0}.class-admin-identity>span{width:2.75rem;height:2.75rem}.class-admin-identity h1{font-size:1.2rem}.class-admin-actions{flex:none}.edit-info-card :deep(.ant-card-body){padding:1.5rem}.edit-form-grid{grid-template-columns:minmax(0,1.25fr) minmax(15rem,.75fr);gap:0 1.25rem}@media(max-width:1023px){.class-admin-header{align-items:flex-start}.class-admin-header-main{align-items:flex-start}.class-admin-actions{flex-wrap:wrap}.edit-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:767px){.class-admin-header{align-items:stretch;flex-direction:column;padding:1rem}.class-admin-header-main{display:grid;grid-template-columns:1fr}.class-header-divider{display:none}.class-admin-actions{justify-content:space-between}.class-admin-actions>.ant-tag{display:inline-flex;align-items:center}.class-admin-actions>.ant-btn-primary{display:none}.edit-info-card :deep(.ant-card-body){padding:1rem}.edit-form-grid{grid-template-columns:1fr}}@media(max-width:479px){.class-admin-actions>.ant-tag{width:auto}.class-admin-actions>.ant-btn{flex:0 0 auto}}
-.class-admin-header{display:block;padding:0}.class-admin-header-row{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:1.5rem;padding:1rem 1.125rem}.class-admin-identity{display:block}.class-admin-identity p{text-transform:uppercase;letter-spacing:.06em}.class-admin-actions{display:flex;align-items:center;gap:.65rem}.class-section-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;padding:.75rem 1.125rem;border-top:1px solid #e2e8f0;background:#f8fafc}.class-section-nav button{display:flex;min-width:0;min-height:2.5rem;align-items:center;gap:.5rem;padding:.5rem .75rem;border:1px solid #e2e8f0;border-radius:.625rem;background:#fff;color:#475569;font-size:.7rem;font-weight:650;text-align:left;transition:border-color 160ms ease,background-color 160ms ease,color 160ms ease,box-shadow 160ms ease}.class-section-nav button:hover{border-color:#93c5fd;background:#f8fbff;color:#185fce}.class-section-nav button:focus-visible{outline:2px solid #1677ff;outline-offset:2px}.class-section-nav button span{display:grid;width:1.25rem;height:1.25rem;flex:none;place-items:center;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:.62rem}.class-section-nav button.active{border-color:#93c5fd;background:#eff6ff;color:#185fce;box-shadow:inset 0 0 0 1px rgba(59,130,246,.08)}.class-section-nav button.active span{background:#185fce;color:#fff}.class-scroll-section{scroll-margin-top:5.5rem}.form-save-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-top:1rem;border-top:1px solid #e2e8f0}.form-save-row span{color:#64748b;font-size:.68rem}.form-save-row .ant-btn{flex:none}@media(max-width:1023px){.class-admin-header-row{align-items:flex-start}.class-admin-actions{flex-wrap:wrap;justify-content:flex-end}}@media(max-width:767px){.class-admin-header-row{align-items:stretch;flex-direction:column;padding:1rem}.class-admin-actions{justify-content:space-between}.class-section-nav{grid-template-columns:1fr 1fr;padding:.75rem 1rem}.form-save-row{align-items:stretch;flex-direction:column}.form-save-row .ant-btn{width:100%}}@media(max-width:479px){.class-section-nav{grid-template-columns:1fr}.class-admin-actions>.ant-tag{width:auto}.class-back-button{flex:0 0 auto}}
+.class-edit-page {
+    container-name: class-edit;
+    container-type: inline-size;
+    display: grid;
+    width: 100%;
+    gap: 18px;
+}
+
+.class-admin-hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 22px;
+    min-height: 110px;
+    padding: 20px 24px;
+    border: 1px solid #dbe3ee;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .035);
+}
+
+.class-hero-icon {
+    position: relative;
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    border-radius: 16px;
+    background: #e8f3ff;
+    color: #174f9f;
+}
+
+.class-hero-icon > svg {
+    width: 31px;
+    height: 31px;
+    stroke-width: 1.9;
+}
+
+.class-hero-icon > span {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    display: grid;
+    width: 25px;
+    height: 25px;
+    place-items: center;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: #1677ff;
+    color: #fff;
+}
+
+.class-hero-icon > span svg {
+    width: 13px;
+    height: 13px;
+}
+
+.class-admin-identity {
+    min-width: 0;
+}
+
+.class-admin-identity p,
+.class-admin-identity h2,
+.class-admin-identity .class-meta {
+    margin: 0;
+}
+
+.class-admin-identity p {
+    color: #5b6b84;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+}
+
+.class-admin-identity h2 {
+    overflow: hidden;
+    margin-top: 2px;
+    color: #0b214d;
+    font-size: 25px;
+    font-weight: 780;
+    letter-spacing: -.025em;
+    line-height: 1.22;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.class-meta {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px !important;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.class-meta i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #aab6c7;
+}
+
+.class-admin-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.class-admin-actions :deep(.ant-btn) {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 7px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.class-admin-actions :deep(.ant-btn svg),
+.form-save-row :deep(.ant-btn svg),
+.operation-heading :deep(.ant-btn svg) {
+    width: 16px;
+    height: 16px;
+}
+
+.class-status {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.class-loading-card :deep(.ant-card-body) {
+    padding: 24px;
+}
+
+.edit-info-card,
+.class-operations-card {
+    overflow: hidden;
+    border: 1px solid #dbe3ee;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .035);
+}
+
+.edit-info-card :deep(.ant-card-body) {
+    padding: 0;
+}
+
+.section-heading,
+.operations-heading {
+    padding: 20px 24px 16px;
+}
+
+.section-heading {
+    border-bottom: 1px solid #e6ecf3;
+}
+
+.section-heading h2,
+.section-heading p,
+.operations-heading h2,
+.operations-heading p,
+.operation-heading h3,
+.operation-heading p {
+    margin: 0;
+}
+
+.section-heading h2,
+.operations-heading h2 {
+    color: #0b214d;
+    font-size: 17px;
+    font-weight: 760;
+    letter-spacing: -.012em;
+}
+
+.section-heading p,
+.operations-heading p {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.edit-info-card :deep(.ant-form) {
+    padding: 20px 24px 18px;
+}
+
+.edit-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+}
+
+.edit-room-field {
+    grid-column: 1 / -1;
+}
+
+.edit-info-card :deep(.ant-form-item) {
+    margin-bottom: 15px;
+}
+
+.edit-info-card :deep(.ant-form-item-label) {
+    padding-bottom: 6px;
+}
+
+.edit-info-card :deep(.ant-form-item-label > label) {
+    height: auto;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.edit-info-card :deep(.ant-input-affix-wrapper),
+.edit-info-card :deep(.ant-select-selector) {
+    min-height: 42px;
+    border-color: #d7dee9 !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+
+.edit-info-card :deep(.ant-input-affix-wrapper) {
+    gap: 9px;
+    padding-inline: 11px;
+}
+
+.edit-info-card :deep(.ant-input),
+.edit-info-card :deep(.ant-select-selection-item),
+.edit-info-card :deep(.ant-select-selection-placeholder) {
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.edit-info-card :deep(.ant-select-selection-item),
+.edit-info-card :deep(.ant-select-selection-placeholder) {
+    line-height: 40px !important;
+}
+
+.edit-info-card :deep(.ant-input-affix-wrapper:hover),
+.edit-info-card :deep(.ant-select-selector:hover) {
+    border-color: #91bdf7 !important;
+}
+
+.edit-info-card :deep(.ant-input-affix-wrapper-focused),
+.edit-info-card :deep(.ant-select-focused .ant-select-selector) {
+    border-color: #1677ff !important;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, .12) !important;
+}
+
+.control-icon,
+.select-with-icon > svg {
+    width: 16px;
+    height: 16px;
+    color: #2563eb;
+    stroke-width: 1.9;
+}
+
+.select-with-icon {
+    position: relative;
+}
+
+.select-with-icon > svg {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 12px;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.select-with-icon :deep(.ant-select) {
+    width: 100%;
+}
+
+.select-with-icon :deep(.ant-select-selector) {
+    padding-left: 39px !important;
+}
+
+.edit-info-card :deep(.ant-input-affix-wrapper-disabled .control-icon) {
+    color: #94a3b8;
+}
+
+.class-change-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 2px;
+    border: 1px solid #a9ccff;
+    border-radius: 10px;
+    background: #f4f8ff;
+    padding: 12px 14px;
+    color: #245da8;
+}
+
+.class-change-note > svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    margin-top: 1px;
+}
+
+.class-change-note span,
+.class-change-note b {
+    display: block;
+}
+
+.class-change-note span {
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.class-change-note b {
+    margin-bottom: 2px;
+    font-size: 12px;
+}
+
+.form-save-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e6ecf3;
+}
+
+.form-save-row :deep(.ant-btn) {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 7px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.class-operations-card :deep(.ant-card-body) {
+    padding: 0;
+}
+
+.operations-heading {
+    border-bottom: 1px solid #e6ecf3;
+}
+
+.operations-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+}
+
+.roster-section {
+    min-width: 0;
+    padding: 18px 20px 20px;
+    border-right: 1px solid #e6ecf3;
+}
+
+.operations-aside {
+    min-width: 0;
+}
+
+.operation-panel {
+    padding: 18px 20px;
+}
+
+.operation-panel + .operation-panel {
+    border-top: 1px solid #e6ecf3;
+}
+
+.operation-heading {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.operation-heading > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px;
+}
+
+.operation-heading > div > span {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    place-items: center;
+    border-radius: 10px;
+    background: #eff5ff;
+    color: #2563eb;
+}
+
+.operation-heading > div > span svg {
+    width: 18px;
+    height: 18px;
+}
+
+.operation-heading h3 {
+    color: #0b214d;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.operation-heading p {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.operation-heading :deep(.ant-btn) {
+    display: inline-flex;
+    min-height: 36px;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.record-list,
+.schedule-records {
+    max-height: 260px;
+    overflow-y: auto;
+    border-top: 1px solid #e6ecf3;
+}
+
+.record-list > div {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    min-height: 62px;
+    border-bottom: 1px solid #edf1f6;
+    transition: background-color 150ms ease;
+}
+
+.record-list > div:hover,
+.schedule-records > div:hover {
+    background: #fbfdff;
+}
+
+.record-list i {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 50%;
+    background: #eff5ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 750;
+}
+
+.record-list span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.record-list b,
+.record-list small,
+.schedule-records b,
+.schedule-records small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.record-list b,
+.schedule-records b {
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.record-list small,
+.schedule-records small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 11px;
+}
+
+.compact-record-list {
+    max-height: 190px;
+}
+
+.schedule-records > div {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 58px;
+    border-bottom: 1px solid #edf1f6;
+    transition: background-color 150ms ease;
+}
+
+.schedule-records > div > span {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: 9px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.schedule-records svg {
+    width: 16px;
+    height: 16px;
+}
+
+.schedule-records > div > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+@container class-edit (max-width: 980px) {
+    .class-admin-hero {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .class-admin-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        padding-top: 2px;
+    }
+
+    .operations-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .roster-section {
+        border-right: 0;
+        border-bottom: 1px solid #e6ecf3;
+    }
+
+    .operations-aside {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .operation-panel + .operation-panel {
+        border-top: 0;
+        border-left: 1px solid #e6ecf3;
+    }
+}
+
+@container class-edit (max-width: 700px) {
+    .class-edit-page {
+        gap: 14px;
+    }
+
+    .class-admin-hero {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 16px;
+        padding: 18px;
+    }
+
+    .class-hero-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+    }
+
+    .class-hero-icon > svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    .class-admin-identity h2 {
+        font-size: 21px;
+    }
+
+    .class-admin-actions {
+        justify-content: space-between;
+    }
+
+    .class-admin-actions .class-back-button {
+        margin-left: auto;
+    }
+
+    .section-heading,
+    .operations-heading {
+        padding: 17px 18px 14px;
+    }
+
+    .edit-info-card :deep(.ant-form) {
+        padding: 18px;
+    }
+
+    .edit-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .edit-room-field {
+        grid-column: auto;
+    }
+
+    .form-save-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .form-save-row :deep(.ant-btn) {
+        justify-content: center;
+    }
+
+    .operations-aside {
+        grid-template-columns: 1fr;
+    }
+
+    .operation-panel + .operation-panel {
+        border-top: 1px solid #e6ecf3;
+        border-left: 0;
+    }
+
+    .roster-section,
+    .operation-panel {
+        padding: 16px 18px;
+    }
+}
+
+@container class-edit (max-width: 460px) {
+    .class-admin-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .class-hero-icon {
+        display: none;
+    }
+
+    .class-admin-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+    }
+
+    .class-admin-actions .class-status {
+        justify-self: start;
+    }
+
+    .class-admin-actions .class-back-button {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
+    }
+
+    .form-save-row {
+        grid-template-columns: 1fr;
+    }
+
+    .operation-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .operation-heading :deep(.ant-btn) {
+        justify-content: center;
+    }
+
+    .record-list > div {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding-block: 9px;
+    }
+
+    .record-list > div > .ant-tag {
+        grid-column: 2;
+        justify-self: start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .record-list > div,
+    .schedule-records > div {
+        transition: none;
+    }
+}
 </style>

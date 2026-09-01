@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import AButton from "ant-design-vue/es/button";
 import APopover from "ant-design-vue/es/popover";
 import { CircleOff, Eye, MoreHorizontal, Trash2 } from "lucide-vue-next";
@@ -13,11 +14,28 @@ withDefaults(defineProps<{
     showView: true,
 });
 
-defineEmits<{
+const emit = defineEmits<{
     view: [session: AttendanceSession];
     cancel: [session: AttendanceSession];
     delete: [session: AttendanceSession];
 }>();
+
+const popoverOpen = ref(false);
+
+function viewSession(session: AttendanceSession) {
+    popoverOpen.value = false;
+    emit("view", session);
+}
+
+function cancelSession(session: AttendanceSession) {
+    popoverOpen.value = false;
+    emit("cancel", session);
+}
+
+function deleteSession(session: AttendanceSession) {
+    popoverOpen.value = false;
+    emit("delete", session);
+}
 
 function formatSession(value: string) {
     return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -25,12 +43,12 @@ function formatSession(value: string) {
 </script>
 
 <template>
-    <APopover trigger="click" placement="bottomRight" overlay-class-name="attendance-session-action-popover">
+    <APopover v-model:open="popoverOpen" trigger="click" placement="bottomRight" overlay-class-name="attendance-session-action-popover">
         <template #content>
             <div class="attendance-session-action-menu" role="menu" :aria-label="`Thao tác phiên ${formatSession(session.held_at)}`">
-                <button v-if="showView" type="button" role="menuitem" @click="$emit('view', session)"><Eye aria-hidden="true" />Xem chi tiết</button>
-                <button v-if="session.status==='active'" type="button" role="menuitem" :disabled="Boolean(busyAction)" @click="$emit('cancel', session)"><CircleOff aria-hidden="true" />Hủy phiên</button>
-                <button type="button" role="menuitem" class="danger" :disabled="Boolean(busyAction)" @click="$emit('delete', session)"><Trash2 aria-hidden="true" />Xóa phiên</button>
+                <button v-if="showView" type="button" role="menuitem" @click="viewSession(session)"><Eye aria-hidden="true" />Xem chi tiết</button>
+                <button v-if="session.status==='active'" type="button" role="menuitem" :disabled="Boolean(busyAction)" @click="cancelSession(session)"><CircleOff aria-hidden="true" />Hủy phiên</button>
+                <button type="button" role="menuitem" class="danger" :disabled="Boolean(busyAction)" @click="deleteSession(session)"><Trash2 aria-hidden="true" />Xóa phiên</button>
             </div>
         </template>
         <AButton class="attendance-session-more-button" :loading="Boolean(busyAction)" :aria-label="`Mở thao tác phiên ${formatSession(session.held_at)}`">
