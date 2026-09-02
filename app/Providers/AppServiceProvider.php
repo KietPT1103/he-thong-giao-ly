@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Database\PostgresConnection;
 use App\Models\User;
 use App\Services\ChildDeviceCredentialService;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Connection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,7 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        Connection::resolverFor('pgsql', static function ($connection, $database, $prefix, $config) {
+            return new PostgresConnection($connection, $database, $prefix, $config);
+        });
     }
 
     /**
