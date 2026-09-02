@@ -72,6 +72,7 @@ const routes: RouteRecordRaw[] = [
     protectedRoute("/admin/accounts", "Quản lý tài khoản", ["admin"], () => import("../views/AdminAccountsView.vue"), "manage-users"),
     protectedRoute("/admin/parishes", "Giáo xứ", ["admin"], () => import("../views/AdminParishesView.vue"), "manage-system-settings"),
     protectedRoute("/admin/teachers", "Giáo lý viên", ["admin"], () => import("../views/AdminTeachersView.vue"), "manage-users"),
+    protectedRoute("/admin/class-catalogs", "Danh mục lớp học", ["admin"], () => import("../views/AdminClassCatalogView.vue"), "view-academic-years"),
     protectedRoute("/admin/classes", "Lớp học", ["admin"], () => import("../views/AdminClassesView.vue"), "view-classes"),
     protectedRoute("/admin/classes/:id/edit", "Chỉnh sửa lớp học", ["admin"], () => import("../views/AdminClassEditView.vue"), "view-classes"),
     protectedRoute("/admin/parents", "Phụ huynh", ["admin"], () => import("../views/AdminParentsView.vue"), "view-parents"),
@@ -183,7 +184,12 @@ const routes: RouteRecordRaw[] = [
         ["/profile", "Hồ sơ"],
     ].map(([path, title]) => parent(path, title)),
 
-    child("", "Tổng quan"),
+    {
+        path: "/child",
+        redirect: "/child/schedule",
+        meta: { requiresAuth: true, title: "Lịch học", roles: ["child"] },
+    },
+    protectedRoute("/child/schedule", "Lịch học", ["child"], () => import("../views/ChildScheduleView.vue")),
     protectedRoute(
         "/child/my-qr",
         "Quét QR điểm danh",
@@ -195,7 +201,6 @@ const routes: RouteRecordRaw[] = [
     protectedRoute("/child/assignments/:id", "Làm bài tập", ["child"], () => import("../views/ChildAssignmentTakeView.vue"), "view-assignments"),
     protectedRoute("/child/notifications", "Thông báo", ["child"], () => import("../views/NotificationsView.vue"), "view-notifications"),
     ...[
-        ["/schedule", "Lịch học"],
         ["/mass", "Thánh lễ"],
         ["/lessons", "Bài học"],
         ["/points", "Điểm thưởng"],
@@ -227,7 +232,7 @@ export function dashboardFor(roles: string[]) {
     if (roles.includes("admin")) return "/admin";
     if (roles.includes("teacher")) return "/teacher";
     if (roles.includes("parent")) return "/parent";
-    if (roles.includes("child")) return "/child";
+    if (roles.includes("child")) return "/child/schedule";
     return "/403";
 }
 const router = createRouter({

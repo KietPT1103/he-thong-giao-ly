@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AcademicYear extends Model
 {
-    protected $fillable = ['parish_id', 'name', 'starts_on', 'ends_on', 'is_current'];
+    protected $fillable = ['parish_id', 'name', 'starts_on', 'ends_on', 'is_current', 'is_active'];
 
     protected function casts(): array
     {
@@ -14,6 +14,7 @@ class AcademicYear extends Model
             'starts_on' => 'date',
             'ends_on' => 'date',
             'is_current' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 

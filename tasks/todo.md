@@ -73,3 +73,46 @@
 - [ ] Task 18: Final verification
   - Acceptance: focused/regression/Pint/type-check/build/detector/browser sạch.
   - Verify: toàn bộ command trong spec.
+
+---
+
+# Tasks: Danh mục lớp học
+
+## Phase 1 — Contract và foundation
+
+- [x] Task 19: Thêm trạng thái danh mục và quyền phòng học
+  - Acceptance: ba bảng có `is_active`; admin nhận đủ permission phòng học.
+  - Verify: migration/permission feature tests.
+- [x] Task 20: Khóa API contract và validation
+  - Acceptance: payload riêng cho niên khóa, khối, phòng; lỗi validation 422.
+  - Verify: focused CRUD tests bắt đầu ở trạng thái đỏ.
+
+## Phase 2 — API CRUD an toàn
+
+- [x] Task 21: CRUD Niên khóa
+  - Acceptance: tạo/sửa/current duy nhất/ngừng dùng; audit đầy đủ.
+  - Verify: academic-year API tests.
+- [x] Task 22: CRUD Khối giáo lý và Phòng học
+  - Acceptance: create/update/status; chặn xóa khi có lớp, cho xóa khi rỗng.
+  - Verify: level/classroom API tests và abuse tests.
+- [x] Task 23: Lọc options của lớp
+  - Acceptance: lớp mới chỉ thấy danh mục active; lớp cũ vẫn thấy lựa chọn hiện tại.
+  - Verify: class options regression tests.
+
+## Phase 3 — UI quản trị
+
+- [x] Task 24: Thêm route/sidebar và màn ba tab
+  - Acceptance: chọn giáo xứ, xem danh sách, trạng thái, số lớp; empty/error/loading.
+  - Verify: type-check và browser QA.
+- [x] Task 25: Form tạo/sửa và thao tác trạng thái/xóa
+  - Acceptance: lỗi theo trường, confirm nguy hiểm, disabled delete khi đang dùng.
+  - Verify: critical browser flows.
+- [x] Task 26: Nối từ màn Chỉnh sửa lớp
+  - Acceptance: có liên kết quản lý danh mục; quay lại không mất luồng quản trị.
+  - Verify: desktop/mobile navigation.
+
+## Phase 4 — Final verification
+
+- [x] Task 27: Regression và responsive
+  - Acceptance: Pint, focused/full tests, type-check, build, console sạch.
+  - Verify: 390×844, 1024×768, 1920×1080.

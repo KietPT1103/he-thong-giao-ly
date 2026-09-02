@@ -75,6 +75,66 @@ export interface ParishInput {
     email:string|null;
 }
 
+export interface AcademicYearCatalog {
+    id:number;
+    parish_id:number;
+    name:string;
+    starts_on:string;
+    ends_on:string;
+    is_current:boolean;
+    is_active:boolean;
+    classes_count:number;
+}
+
+export interface CatechismLevelCatalog {
+    id:number;
+    parish_id:number;
+    name:string;
+    code:string;
+    sort_order:number;
+    is_active:boolean;
+    classes_count:number;
+}
+
+export interface ClassroomCatalog {
+    id:number;
+    parish_id:number;
+    name:string;
+    capacity:number|null;
+    is_active:boolean;
+    classes_count:number;
+}
+
+export interface ClassCatalogs {
+    academic_years:AcademicYearCatalog[];
+    levels:CatechismLevelCatalog[];
+    classrooms:ClassroomCatalog[];
+}
+
+export interface AcademicYearCatalogInput {
+    parish_id?:number;
+    name:string;
+    starts_on:string;
+    ends_on:string;
+    is_current:boolean;
+    is_active:boolean;
+}
+
+export interface CatechismLevelCatalogInput {
+    parish_id?:number;
+    name:string;
+    code:string;
+    sort_order:number;
+    is_active:boolean;
+}
+
+export interface ClassroomCatalogInput {
+    parish_id?:number;
+    name:string;
+    capacity:number|null;
+    is_active:boolean;
+}
+
 export interface TeacherClass {
     id:number;
     name:string;
@@ -154,6 +214,27 @@ export const assignParishTeachers = (id:number, teacherIds:number[]) =>
 
 export const deleteParish = (id:number) =>
     client.delete<ApiResponse<null>>(`/admin/parishes/${id}`);
+
+export const getClassCatalogs = (parishId:number) =>
+    client.get<ApiResponse<ClassCatalogs>>('/admin/class-catalogs', {params:{parish_id:parishId}});
+export const createAcademicYear = (data:AcademicYearCatalogInput) =>
+    client.post<ApiResponse<AcademicYearCatalog>>('/admin/academic-years', data);
+export const updateAcademicYear = (id:number, data:AcademicYearCatalogInput) =>
+    client.patch<ApiResponse<AcademicYearCatalog>>(`/admin/academic-years/${id}`, data);
+export const deleteAcademicYear = (id:number) =>
+    client.delete<ApiResponse<null>>(`/admin/academic-years/${id}`);
+export const createCatechismLevel = (data:CatechismLevelCatalogInput) =>
+    client.post<ApiResponse<CatechismLevelCatalog>>('/admin/catechism-levels', data);
+export const updateCatechismLevel = (id:number, data:CatechismLevelCatalogInput) =>
+    client.patch<ApiResponse<CatechismLevelCatalog>>(`/admin/catechism-levels/${id}`, data);
+export const deleteCatechismLevel = (id:number) =>
+    client.delete<ApiResponse<null>>(`/admin/catechism-levels/${id}`);
+export const createClassroom = (data:ClassroomCatalogInput) =>
+    client.post<ApiResponse<ClassroomCatalog>>('/admin/classrooms', data);
+export const updateClassroom = (id:number, data:ClassroomCatalogInput) =>
+    client.patch<ApiResponse<ClassroomCatalog>>(`/admin/classrooms/${id}`, data);
+export const deleteClassroom = (id:number) =>
+    client.delete<ApiResponse<null>>(`/admin/classrooms/${id}`);
 
 export const listTeachers = (params:TeacherListParams) =>
     client.get<ApiResponse<Teacher[]>>('/admin/teachers', {params});
@@ -248,7 +329,7 @@ export interface ClassScheduleInput {
 }
 
 export interface ClassSchedule extends ClassScheduleInput { id:number }
-export interface ClassTeacher { id:number;name:string;email:string;code:string;role:"primary"|"assistant" }
+export interface ClassTeacher { id:number;name:string;email:string;avatar_url:string|null;code:string;role:"primary"|"assistant" }
 export interface ClassEnrollment { id:number;status:"active"|"inactive";child:{id:number;code:string;full_name:string} }
 export interface AdminClass {
     id:number;
@@ -290,7 +371,7 @@ export interface ClassInput {
     status:"active"|"inactive";
 }
 
-export interface ClassOption { id:number;parish_id:number;name:string;code?:string;capacity?:number|null;starts_on?:string;ends_on?:string;is_current?:boolean }
+export interface ClassOption { id:number;parish_id:number;name:string;code?:string;capacity?:number|null;starts_on?:string;ends_on?:string;is_current?:boolean;is_active?:boolean }
 export interface ClassPersonOption { id:number;name?:string;full_name?:string;email?:string;code:string;status?:string }
 export interface ClassOptions {
     parishes:Array<Pick<Parish,"id"|"name"|"code">>;
@@ -309,8 +390,8 @@ export const listClasses = (params:ClassListParams) =>
     client.get<ApiResponse<AdminClass[]>>('/admin/classes', {params});
 export const getClass = (id:number, includeArchived = false) =>
     client.get<ApiResponse<AdminClass>>(`/admin/classes/${id}`, {params:{include_archived:includeArchived ? 1 : undefined}});
-export const getClassOptions = (parishId?:number, search?:string) =>
-    client.get<ApiResponse<ClassOptions>>('/admin/classes/options', {params:{parish_id:parishId, search:search || undefined}});
+export const getClassOptions = (parishId?:number, search?:string, classId?:number) =>
+    client.get<ApiResponse<ClassOptions>>('/admin/classes/options', {params:{parish_id:parishId, search:search || undefined, class_id:classId}});
 export const createClass = (data:ClassInput) => client.post<ApiResponse<AdminClass>>('/admin/classes', data);
 export const updateClass = (id:number, data:ClassInput) => client.patch<ApiResponse<AdminClass>>(`/admin/classes/${id}`, data);
 export const archiveClass = (id:number) => client.delete<ApiResponse<null>>(`/admin/classes/${id}`);

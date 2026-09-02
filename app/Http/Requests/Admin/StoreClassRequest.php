@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\AcademicYear;
+use App\Models\CatechismClass;
 use App\Models\CatechismLevel;
 use App\Models\Classroom;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,6 +54,19 @@ class StoreClassRequest extends FormRequest
             $year = AcademicYear::find($this->integer('academic_year_id'));
             $level = CatechismLevel::find($this->integer('catechism_level_id'));
             $room = $this->filled('classroom_id') ? Classroom::find($this->integer('classroom_id')) : null;
+            $editingClass = $this->route('class')
+                ? CatechismClass::withTrashed()->find((int) $this->route('class'))
+                : null;
+
+            if ($year && ! $year->is_active && $editingClass?->academic_year_id !== $year->id) {
+                $validator->errors()->add('academic_year_id', 'Niên khóa này đã ngừng sử dụng.');
+            }
+            if ($level && ! $level->is_active && $editingClass?->catechism_level_id !== $level->id) {
+                $validator->errors()->add('catechism_level_id', 'Khối giáo lý này đã ngừng sử dụng.');
+            }
+            if ($room && ! $room->is_active && $editingClass?->classroom_id !== $room->id) {
+                $validator->errors()->add('classroom_id', 'Phòng học này đã ngừng sử dụng.');
+            }
 
             if ($year && $level && $year->parish_id !== $level->parish_id) {
                 $validator->errors()->add('catechism_level_id', 'Khối giáo lý phải cùng giáo xứ với niên khóa.');

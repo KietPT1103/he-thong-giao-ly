@@ -13,8 +13,8 @@ import ASelect from "ant-design-vue/es/select";
 import ASkeleton from "ant-design-vue/es/skeleton";
 import ATag from "ant-design-vue/es/tag";
 import {
-    ArrowLeft, BookOpen, Building2, CalendarDays, CheckCircle2, Clock3,
-    DoorOpen, GraduationCap, Hash, Info, Pencil, RotateCcw, Save,
+    ArrowLeft, BookOpen, Building2, CalendarDays, CheckCircle2, ChevronRight, Clock3,
+    DoorOpen, GraduationCap, Hash, Info, Pencil, RotateCcw, Save, Settings2,
     UserRoundCheck, UsersRound, X,
 } from "lucide-vue-next";
 import { toast } from "vue-sonner";
@@ -28,6 +28,7 @@ import AdminActionConfirmModal from "../components/AdminActionConfirmModal.vue";
 import AdminClassEnrollmentModal from "../components/AdminClassEnrollmentModal.vue";
 import AdminClassScheduleModal from "../components/AdminClassScheduleModal.vue";
 import AdminClassTeacherModal from "../components/AdminClassTeacherModal.vue";
+import UserAvatar from "../components/UserAvatar.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -56,7 +57,10 @@ const archived = computed(() => Boolean(model.value?.is_archived));
 const weekday = ["","Thứ hai","Thứ ba","Thứ tư","Thứ năm","Thứ sáu","Thứ bảy","Chủ nhật"];
 const apiData = (error:unknown) => (error as BusinessApiError).response?.data;
 const apiMessage = (error:unknown, fallback:string) => apiData(error)?.message ?? fallback;
-const optionList = (items:Array<{id:number;name:string;code?:string}>) => items.map(item => ({ value:item.id, label:item.code ? `${item.name} (${item.code})` : item.name }));
+const optionList = (items:Array<{id:number;name:string;code?:string;is_active?:boolean}>) => items.map(item => ({
+    value:item.id,
+    label:`${item.code ? `${item.name} (${item.code})` : item.name}${item.is_active === false ? " · Ngừng sử dụng" : ""}`,
+}));
 
 function syncForm(value:AdminClass) {
     Object.assign(form, {
@@ -75,7 +79,7 @@ function syncForm(value:AdminClass) {
 async function loadOptions(search?:string) {
     if (!model.value) return;
     try {
-        options.value = (await getClassOptions(model.value.parish?.id, search)).data.data;
+        options.value = (await getClassOptions(model.value.parish?.id, search, model.value.id)).data.data;
     } catch {
         toast.error("Không thể tải dữ liệu lựa chọn của lớp học.");
     }
@@ -209,7 +213,6 @@ onMounted(load);
                 </div>
             </div>
             <div class="class-admin-actions">
-                <ATag v-if="model" class="class-status" :color="archived ? 'default' : model.status === 'active' ? 'success' : 'warning'">{{ archived ? "Đã lưu trữ" : model.status === "active" ? "Đang hoạt động" : "Tạm ngưng" }}</ATag>
                 <AButton v-if="model && archived" :loading="saving" @click="action='restore'"><template #icon><RotateCcw /></template>Khôi phục</AButton>
                 <AButton class="class-back-button" aria-label="Quay lại danh sách lớp học" @click="router.push('/admin/classes')">
                     <template #icon><ArrowLeft /></template>
@@ -225,8 +228,8 @@ onMounted(load);
             <AAlert v-if="archived" type="warning" show-icon message="Lớp đã được lưu trữ. Khôi phục lớp trước khi thay đổi thông tin, thành viên hoặc lịch học." class="mb-4" />
             <ACard :bordered="false" class="admin-card edit-info-card">
                 <div class="section-heading">
-                    <h2>Thông tin lớp học</h2>
-                    <p>Cập nhật các thông tin, cấu hình và trạng thái của lớp học.</p>
+                    <div><h2>Thông tin lớp học</h2><p>Cập nhật các thông tin, cấu hình và trạng thái của lớp học.</p></div>
+                    <AButton @click="router.push({path:'/admin/class-catalogs',query:{parish:String(model?.parish?.id ?? '')}})"><template #icon><Settings2 /></template>Quản lý danh mục</AButton>
                 </div>
                 <AForm ref="formRef" :model="form" :disabled="saving || archived" layout="vertical" @finish="saveInfo">
                     <div class="edit-form-grid">
@@ -261,13 +264,13 @@ onMounted(load);
             </ACard>
 
             <ACard :bordered="false" class="admin-card class-operations-card">
-                <div class="operations-heading">
-                    <h2>Tổng quan lớp học</h2>
-                    <p>Thông tin tổng hợp và thành viên của lớp học.</p>
-                </div>
                 <div class="operations-layout">
                     <section class="roster-section">
-                        <div class="operation-heading">
+                        <div class="operations-heading">
+                            <h2>Tổng quan lớp học</h2>
+                            <p>Thông tin tổng hợp và thành viên của lớp học.</p>
+                        </div>
+                        <div class="operation-heading roster-heading">
                             <div><span><UsersRound /></span><div><h3>Danh sách thiếu nhi</h3><p>{{ model.enrollments_count }} em đang được xếp vào lớp</p></div></div>
                             <AButton :disabled="archived" @click="enrollmentOpen=true"><template #icon><Pencil /></template>Quản lý danh sách</AButton>
                         </div>
@@ -278,22 +281,34 @@ onMounted(load);
                     </section>
 
                     <aside class="operations-aside">
-                        <section class="operation-panel">
-                            <div class="operation-heading">
-                                <div><span><UserRoundCheck /></span><div><h3>Giáo lý viên</h3><p>{{ model.teachers_count }} người phụ trách</p></div></div>
-                                <AButton type="text" :disabled="archived" @click="teacherOpen=true">Phân công</AButton>
-                            </div>
-                            <div v-if="model.teachers?.length" class="record-list compact-record-list"><div v-for="teacher in model.teachers" :key="teacher.id"><i>{{ teacher.name.slice(0,1) }}</i><span><b>{{ teacher.name }}</b><small>{{ teacher.email }}</small></span><ATag>{{ teacher.role === 'primary' ? 'Phụ trách chính' : 'Phụ tá' }}</ATag></div></div>
-                            <AEmpty v-else description="Chưa phân công giáo lý viên." class="py-6" />
-                        </section>
-                        <section class="operation-panel">
-                            <div class="operation-heading">
-                                <div><span><CalendarDays /></span><div><h3>Lịch học định kỳ</h3><p>{{ model.schedules.length }} khung giờ đã thiết lập</p></div></div>
-                                <AButton type="text" :disabled="archived" @click="scheduleOpen=true">Thiết lập</AButton>
-                            </div>
-                            <div v-if="model.schedules.length" class="schedule-records"><div v-for="schedule in model.schedules" :key="schedule.id"><span><Clock3 /></span><div><b>{{ weekday[schedule.weekday] }}</b><small>{{ schedule.starts_at }}–{{ schedule.ends_at }}</small></div></div></div>
-                            <AEmpty v-else description="Chưa thiết lập lịch học." class="py-6" />
-                        </section>
+                        <button type="button" class="overview-action-row" aria-label="Quản lý phân công giáo lý viên" :disabled="archived" @click="teacherOpen=true">
+                            <span class="overview-row-icon"><UserRoundCheck aria-hidden="true" /></span>
+                            <span class="overview-row-label"><b>Giáo lý viên</b><small>{{ model.teachers_count }} người phụ trách</small></span>
+                            <span class="overview-row-value overview-row-value--teacher">
+                                <UserAvatar
+                                    :name="model.teachers?.[0]?.name || 'Chưa phân công'"
+                                    :avatar-url="model.teachers?.[0]?.avatar_url"
+                                    size="sm"
+                                />
+                                <span class="overview-teacher-copy">
+                                    <b>{{ model.teachers?.[0]?.name || "Chưa phân công" }}</b>
+                                    <small>{{ model.teachers?.[0]?.email || "Chọn giáo lý viên phụ trách" }}</small>
+                                </span>
+                            </span>
+                            <ChevronRight class="overview-row-chevron" aria-hidden="true" />
+                        </button>
+                        <button type="button" class="overview-action-row" aria-label="Thiết lập lịch học định kỳ" :disabled="archived" @click="scheduleOpen=true">
+                            <span class="overview-row-icon"><CalendarDays aria-hidden="true" /></span>
+                            <span class="overview-row-label"><b>Lịch học định kỳ</b><small>{{ model.schedules.length }} khung giờ đã thiết lập</small></span>
+                            <span class="overview-row-value is-action"><b>Thiết lập</b><small>Quản lý lịch của lớp</small></span>
+                            <ChevronRight class="overview-row-chevron" aria-hidden="true" />
+                        </button>
+                        <button v-for="schedule in model.schedules" :key="schedule.id" type="button" class="overview-action-row overview-action-row--schedule" :aria-label="`Chỉnh sửa khung giờ ${weekday[schedule.weekday]} ${schedule.starts_at} đến ${schedule.ends_at}`" :disabled="archived" @click="scheduleOpen=true">
+                            <span class="overview-row-icon is-neutral"><Clock3 aria-hidden="true" /></span>
+                            <span class="overview-row-label"><b>{{ weekday[schedule.weekday] }}</b><small>{{ schedule.starts_at }}–{{ schedule.ends_at }}</small></span>
+                            <span class="overview-row-value is-action"><b>Khung giờ</b><small>Chỉnh sửa thời gian</small></span>
+                            <ChevronRight class="overview-row-chevron" aria-hidden="true" />
+                        </button>
                     </aside>
                 </div>
             </ACard>
@@ -417,7 +432,7 @@ onMounted(load);
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 12px;
 }
 
 .class-admin-actions :deep(.ant-btn) {
@@ -425,9 +440,33 @@ onMounted(load);
     min-height: 40px;
     align-items: center;
     gap: 7px;
-    border-radius: 9px;
+    border: 0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow:
+        0 0 0 1px rgba(15, 23, 42, .10),
+        0 1px 2px -1px rgba(15, 23, 42, .12),
+        0 3px 8px rgba(15, 23, 42, .05);
+    padding-inline: 12px 14px;
+    color: #253858;
     font-size: 13px;
     font-weight: 600;
+    transition-property: color, background-color, box-shadow, scale;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+}
+
+.class-admin-actions :deep(.ant-btn:hover) {
+    background: #f8fbff;
+    color: #1559bd;
+    box-shadow:
+        0 0 0 1px rgba(37, 99, 235, .22),
+        0 2px 3px -1px rgba(15, 23, 42, .12),
+        0 5px 12px rgba(37, 99, 235, .08);
+}
+
+.class-admin-actions :deep(.ant-btn:active) {
+    scale: .96;
 }
 
 .class-admin-actions :deep(.ant-btn svg),
@@ -435,11 +474,6 @@ onMounted(load);
 .operation-heading :deep(.ant-btn svg) {
     width: 16px;
     height: 16px;
-}
-
-.class-status {
-    margin: 0;
-    white-space: nowrap;
 }
 
 .class-loading-card :deep(.ant-card-body) {
@@ -465,7 +499,27 @@ onMounted(load);
 }
 
 .section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     border-bottom: 1px solid #e6ecf3;
+}
+
+.section-heading :deep(.ant-btn) {
+    display: inline-flex;
+    min-height: 38px;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.section-heading :deep(.ant-btn svg) {
+    width: 15px;
+    height: 15px;
 }
 
 .section-heading h2,
@@ -655,25 +709,21 @@ onMounted(load);
 
 .operations-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+    grid-template-columns: minmax(0, 1.04fr) minmax(420px, .96fr);
+    min-height: 270px;
 }
 
 .roster-section {
     min-width: 0;
-    padding: 18px 20px 20px;
     border-right: 1px solid #e6ecf3;
 }
 
 .operations-aside {
     min-width: 0;
-}
-
-.operation-panel {
-    padding: 18px 20px;
-}
-
-.operation-panel + .operation-panel {
-    border-top: 1px solid #e6ecf3;
+    max-height: 420px;
+    overflow-y: auto;
+    background: #fff;
+    scrollbar-gutter: stable;
 }
 
 .operation-heading {
@@ -682,7 +732,14 @@ onMounted(load);
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 14px;
+}
+
+.roster-heading {
+    margin: 14px 18px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px 11px 0 0;
+    background: #fbfdff;
+    padding: 12px;
 }
 
 .operation-heading > div {
@@ -723,20 +780,42 @@ onMounted(load);
 
 .operation-heading :deep(.ant-btn) {
     display: inline-flex;
-    min-height: 36px;
+    min-height: 38px;
     flex: none;
     align-items: center;
     gap: 6px;
-    border-radius: 8px;
+    border-color: #dce4ee;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
     font-size: 12px;
     font-weight: 600;
+    transition-property: color, background-color, border-color, box-shadow, scale;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
 }
 
-.record-list,
-.schedule-records {
+.operation-heading :deep(.ant-btn:hover) {
+    border-color: #a9c9f6;
+    background: #f8fbff;
+    color: #1559bd;
+    box-shadow: 0 3px 9px rgba(37, 99, 235, .08);
+}
+
+.operation-heading :deep(.ant-btn:active) {
+    scale: .96;
+}
+
+.record-list {
     max-height: 260px;
     overflow-y: auto;
-    border-top: 1px solid #e6ecf3;
+}
+
+.roster-list {
+    margin: 0 18px 18px;
+    border: 1px solid #e2e8f0;
+    border-top: 0;
+    border-radius: 0 0 11px 11px;
 }
 
 .record-list > div {
@@ -745,12 +824,16 @@ onMounted(load);
     align-items: center;
     gap: 11px;
     min-height: 62px;
+    padding-inline: 12px;
     border-bottom: 1px solid #edf1f6;
     transition: background-color 150ms ease;
 }
 
-.record-list > div:hover,
-.schedule-records > div:hover {
+.record-list > div:last-child {
+    border-bottom: 0;
+}
+
+.record-list > div:hover {
     background: #fbfdff;
 }
 
@@ -774,64 +857,203 @@ onMounted(load);
 }
 
 .record-list b,
-.record-list small,
-.schedule-records b,
-.schedule-records small {
+.record-list small {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.record-list b,
-.schedule-records b {
+.record-list b {
     color: #1e293b;
     font-size: 13px;
     font-weight: 700;
 }
 
-.record-list small,
-.schedule-records small {
+.record-list small {
     margin-top: 3px;
     color: #64748b;
     font-size: 11px;
 }
 
-.compact-record-list {
-    max-height: 190px;
+.roster-section > :deep(.ant-empty) {
+    margin: 18px;
+    border: 1px dashed #d8e1ec;
+    border-radius: 11px;
+    background: #fbfdff;
 }
 
-.schedule-records > div {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-height: 58px;
-    border-bottom: 1px solid #edf1f6;
-    transition: background-color 150ms ease;
-}
-
-.schedule-records > div > span {
+.overview-action-row {
     display: grid;
-    width: 34px;
-    height: 34px;
+    width: 100%;
+    grid-template-columns: 40px minmax(128px, .82fr) minmax(140px, 1fr) 18px;
+    align-items: center;
+    gap: 12px;
+    min-height: 88px;
+    border: 0;
+    border-bottom: 1px solid #edf1f6;
+    background: #fff;
+    padding: 14px 18px;
+    color: #334155;
+    cursor: pointer;
+    text-align: left;
+    transition-property: background-color, box-shadow;
+    transition-duration: 140ms;
+    transition-timing-function: ease-out;
+}
+
+.overview-action-row:last-child {
+    border-bottom: 0;
+}
+
+.overview-action-row:hover:not(:disabled) {
+    background: #f8fbff;
+    box-shadow: inset 3px 0 #bfdbfe;
+}
+
+.overview-action-row:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid #2563eb;
+    outline-offset: -3px;
+}
+
+.overview-action-row:disabled {
+    cursor: not-allowed;
+    opacity: .68;
+}
+
+.overview-row-icon {
+    display: grid;
+    width: 40px;
+    height: 40px;
     flex: none;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 10px;
+    background: #eef5ff;
+    color: #2563eb;
+}
+
+.overview-row-icon.is-neutral {
     background: #f1f5f9;
     color: #64748b;
 }
 
-.schedule-records svg {
-    width: 16px;
-    height: 16px;
+.overview-row-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
 }
 
-.schedule-records > div > div {
+.overview-row-label,
+.overview-row-value {
     display: flex;
     min-width: 0;
     flex-direction: column;
 }
 
-@container class-edit (max-width: 980px) {
+.overview-row-value--teacher {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.overview-teacher-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+
+.overview-row-label b,
+.overview-row-label small,
+.overview-row-value b,
+.overview-row-value small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overview-teacher-copy b,
+.overview-teacher-copy small {
+    display: block;
+}
+
+.overview-row-label b,
+.overview-row-value b {
+    color: #1e3158;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.overview-row-label small,
+.overview-row-value small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.overview-row-value.is-action {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.overview-row-value.is-action b {
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.overview-row-chevron {
+    width: 17px;
+    height: 17px;
+    color: #8da0ba;
+    stroke-width: 2;
+    transition: color 140ms ease-out, transform 140ms ease-out;
+}
+
+.overview-action-row:hover:not(:disabled) .overview-row-chevron {
+    color: #2563eb;
+    transform: translateX(2px);
+}
+
+@media (min-width: 1600px) {
+    .class-edit-page {
+        max-width: 1500px;
+        gap: 22px;
+    }
+
+    .class-admin-hero {
+        min-height: 120px;
+        padding: 24px 30px;
+    }
+
+    .operations-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(520px, 1fr);
+    }
+
+    .operations-heading {
+        padding: 24px 28px 19px;
+    }
+
+    .roster-heading {
+        margin: 18px 24px 0;
+        padding: 14px;
+    }
+
+    .roster-list {
+        margin: 0 24px 24px;
+    }
+
+    .overview-action-row {
+        min-height: 94px;
+        grid-template-columns: 42px minmax(160px, .82fr) minmax(180px, 1fr) 18px;
+        gap: 14px;
+        padding-inline: 24px;
+    }
+}
+
+@container class-edit (max-width: 820px) {
     .class-admin-hero {
         grid-template-columns: auto minmax(0, 1fr);
     }
@@ -852,13 +1074,12 @@ onMounted(load);
     }
 
     .operations-aside {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        max-height: none;
+        overflow: visible;
     }
 
-    .operation-panel + .operation-panel {
-        border-top: 0;
-        border-left: 1px solid #e6ecf3;
+    .overview-action-row {
+        grid-template-columns: 40px minmax(150px, .8fr) minmax(160px, 1fr) 18px;
     }
 }
 
@@ -922,18 +1143,25 @@ onMounted(load);
         justify-content: center;
     }
 
-    .operations-aside {
-        grid-template-columns: 1fr;
+    .overview-action-row {
+        grid-template-columns: 40px minmax(0, 1fr) 18px;
+        min-height: 82px;
+        padding: 13px 18px;
     }
 
-    .operation-panel + .operation-panel {
-        border-top: 1px solid #e6ecf3;
-        border-left: 0;
+    .overview-row-value {
+        grid-column: 2;
+        margin-top: -5px;
     }
 
-    .roster-section,
-    .operation-panel {
-        padding: 16px 18px;
+    .overview-row-value.is-action {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .overview-row-chevron {
+        grid-column: 3;
+        grid-row: 1 / span 2;
     }
 }
 
@@ -952,13 +1180,19 @@ onMounted(load);
         justify-items: stretch;
     }
 
-    .class-admin-actions .class-status {
-        justify-self: start;
-    }
-
     .class-admin-actions .class-back-button {
         width: 100%;
         margin-left: 0;
+        justify-content: center;
+    }
+
+    .section-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .section-heading :deep(.ant-btn) {
+        width: 100%;
         justify-content: center;
     }
 
@@ -984,11 +1218,33 @@ onMounted(load);
         grid-column: 2;
         justify-self: start;
     }
+
+    .roster-heading {
+        align-items: stretch;
+        flex-direction: column;
+        margin-inline: 14px;
+    }
+
+    .roster-heading :deep(.ant-btn) {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .roster-list {
+        margin-inline: 14px;
+    }
+
+    .overview-action-row {
+        padding-inline: 14px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .record-list > div,
-    .schedule-records > div {
+    .overview-action-row,
+    .overview-row-chevron,
+    .class-admin-actions :deep(.ant-btn),
+    .operation-heading :deep(.ant-btn) {
         transition: none;
     }
 }

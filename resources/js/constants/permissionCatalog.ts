@@ -33,6 +33,10 @@ export const permissionLabels: Record<string, string> = {
     "create-levels": "Tạo khối giáo lý",
     "update-levels": "Cập nhật khối giáo lý",
     "delete-levels": "Xóa khối giáo lý",
+    "view-classrooms": "Xem phòng học",
+    "create-classrooms": "Tạo phòng học",
+    "update-classrooms": "Cập nhật phòng học",
+    "delete-classrooms": "Xóa phòng học",
     "view-classes": "Xem lớp học",
     "create-classes": "Tạo lớp học",
     "update-classes": "Cập nhật lớp học",
@@ -78,9 +82,9 @@ export const permissionGroups: PermissionGroup[] = [
     },
     {
         id: "catechism",
-        label: "Niên khóa & khối giáo lý",
-        description: "Thiết lập niên khóa và chương trình giáo lý.",
-        permissions: ["view-academic-years", "create-academic-years", "update-academic-years", "delete-academic-years", "view-levels", "create-levels", "update-levels", "delete-levels"],
+        label: "Danh mục lớp học",
+        description: "Thiết lập niên khóa, khối giáo lý và phòng học.",
+        permissions: ["view-academic-years", "create-academic-years", "update-academic-years", "delete-academic-years", "view-levels", "create-levels", "update-levels", "delete-levels", "view-classrooms", "create-classrooms", "update-classrooms", "delete-classrooms"],
     },
     {
         id: "classes",

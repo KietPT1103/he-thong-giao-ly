@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AdminAccountController;
 use App\Http\Controllers\Api\AdminChildController;
+use App\Http\Controllers\Api\AdminClassCatalogController;
 use App\Http\Controllers\Api\AdminClassController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminDirectoryController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChildAssignmentController;
 use App\Http\Controllers\Api\ChildDeviceController;
+use App\Http\Controllers\Api\ChildScheduleController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\LearningFileController;
 use App\Http\Controllers\Api\NotificationInboxController;
@@ -95,6 +97,31 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
                 Route::delete('{teacher}', [AdminTeacherController::class, 'destroy']);
                 Route::post('{teacher}/restore', [AdminTeacherController::class, 'restore']);
             });
+        Route::middleware('can:access-admin')->group(function () {
+            Route::get('class-catalogs', [AdminClassCatalogController::class, 'index'])
+                ->middleware(['can:view-academic-years', 'can:view-levels', 'can:view-classrooms']);
+
+            Route::post('academic-years', [AdminClassCatalogController::class, 'storeAcademicYear'])
+                ->middleware('can:create-academic-years');
+            Route::patch('academic-years/{academic_year}', [AdminClassCatalogController::class, 'updateAcademicYear'])
+                ->middleware('can:update-academic-years');
+            Route::delete('academic-years/{academic_year}', [AdminClassCatalogController::class, 'destroyAcademicYear'])
+                ->middleware('can:delete-academic-years');
+
+            Route::post('catechism-levels', [AdminClassCatalogController::class, 'storeLevel'])
+                ->middleware('can:create-levels');
+            Route::patch('catechism-levels/{catechism_level}', [AdminClassCatalogController::class, 'updateLevel'])
+                ->middleware('can:update-levels');
+            Route::delete('catechism-levels/{catechism_level}', [AdminClassCatalogController::class, 'destroyLevel'])
+                ->middleware('can:delete-levels');
+
+            Route::post('classrooms', [AdminClassCatalogController::class, 'storeClassroom'])
+                ->middleware('can:create-classrooms');
+            Route::patch('classrooms/{classroom}', [AdminClassCatalogController::class, 'updateClassroom'])
+                ->middleware('can:update-classrooms');
+            Route::delete('classrooms/{classroom}', [AdminClassCatalogController::class, 'destroyClassroom'])
+                ->middleware('can:delete-classrooms');
+        });
         Route::prefix('classes')
             ->middleware('can:access-admin')
             ->group(function () {
@@ -156,6 +183,7 @@ Route::middleware(['web', 'auth:sanctum', 'session.absolute'])->group(function (
     Route::post('teacher/submissions/{submission}/reopen', [TeacherGradingController::class, 'reopen']);
     Route::apiResource('teacher/assignments', TeacherAssignmentController::class);
     Route::get('child/assignments', [ChildAssignmentController::class, 'index']);
+    Route::get('child/schedule', ChildScheduleController::class);
     Route::get('child/assignments/{assignment}', [ChildAssignmentController::class, 'show']);
     Route::post('child/assignments/{assignment}/attempts', [ChildAssignmentController::class, 'start']);
     Route::patch('child/submissions/{submission}/answers', [ChildAssignmentController::class, 'saveAnswers']);

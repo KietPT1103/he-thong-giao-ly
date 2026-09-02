@@ -6,7 +6,7 @@ import UserAvatar from "./UserAvatar.vue";
 import {
     Bell, BookOpen, CalendarDays, CheckSquare, ChevronDown,
     Church, CircleHelp, ClipboardList, Gift, GraduationCap,
-    Home, LogOut, QrCode, Settings, UserRound, Users,
+    Home, ListTree, LogOut, QrCode, Settings, UserRound, Users,
 } from "lucide-vue-next";
 
 type NavItem = { to: string; label: string; icon: Component; permission?: string };
@@ -31,6 +31,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/admin/teachers", label: "Giáo lý viên", icon: GraduationCap, permission: "manage-users" },
         { to: "/admin/parents", label: "Phụ huynh", icon: Users, permission: "view-parents" },
         { to: "/admin/children", label: "Thiếu nhi", icon: UserRound, permission: "view-children" },
+        { to: "/admin/class-catalogs", label: "Danh mục lớp học", icon: ListTree, permission: "view-academic-years" },
         { to: "/admin/classes", label: "Lớp học", icon: BookOpen, permission: "view-classes" },
         { to: "/admin/announcements", label: "Thông báo", icon: Bell, permission: "manage-announcements" },
     ],
@@ -54,12 +55,9 @@ const navigationByRole: Record<string, NavItem[]> = {
         { to: "/parent/notifications", label: "Thông báo", icon: Bell, permission: "view-notifications" },
     ],
     child: [
-        { to: "/child", label: "Tổng quan", icon: Home },
         { to: "/child/schedule", label: "Lịch học", icon: CalendarDays },
-        { to: "/child/mass", label: "Thánh lễ", icon: Church },
         { to: "/child/assignments", label: "Bài tập", icon: BookOpen },
         { to: "/child/notifications", label: "Thông báo", icon: Bell, permission: "view-notifications" },
-        { to: "/child/points", label: "Điểm thưởng", icon: Gift },
         { to: "/child/my-qr", label: "Quét QR điểm danh", icon: QrCode, permission: "check-in-attendance-qr" },
     ],
 };

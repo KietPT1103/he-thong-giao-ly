@@ -52,6 +52,7 @@ class ClassResource extends JsonResource
                 'id' => $teacher->id,
                 'name' => $teacher->user->name,
                 'email' => $teacher->user->email,
+                'avatar_url' => $teacher->user->avatarUrl(),
                 'code' => $teacher->code,
                 'role' => $teacher->pivot->role,
             ])->values()),

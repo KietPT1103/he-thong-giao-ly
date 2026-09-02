@@ -17,6 +17,8 @@
 /public/build
 /public/hot
 /public/storage
+/docs/huong-dan-su-dung/.rendered/
+/docs/~$*.docx
 /storage/*.key
 /storage/pail
 /vendor
@@ -31,6 +33,7 @@ tests/*
 !tests/Feature/
 tests/Feature/*
 !tests/Feature/AdminFamilyManagementTest.php
+!tests/Feature/AdminClassManagementTest.php
 !tests/Feature/QrAttendanceTest.php
 !tests/Unit/
 tests/Unit/*

@@ -95,25 +95,41 @@ class AdminClassController extends ApiController
         $data = $request->validate([
             'parish_id' => ['nullable', 'integer', Rule::exists('parishes', 'id')],
             'search' => ['nullable', 'string', 'max:100'],
+            'class_id' => ['nullable', 'integer', Rule::exists('catechism_classes', 'id')],
         ]);
-        $parishId = $data['parish_id'] ?? null;
+        $parishId = isset($data['parish_id']) ? (int) $data['parish_id'] : null;
         $search = trim((string) ($data['search'] ?? ''));
+        $editingClass = isset($data['class_id'])
+            ? CatechismClass::withTrashed()->with('academicYear:id,parish_id')->find($data['class_id'])
+            : null;
+        if ($editingClass?->academicYear?->parish_id !== $parishId) {
+            $editingClass = null;
+        }
 
         return $this->success([
             'parishes' => Parish::query()->orderBy('name')->get(['id', 'name', 'code']),
             'academic_years' => $parishId ? AcademicYear::query()
                 ->where('parish_id', $parishId)
+                ->where(fn (Builder $query) => $query
+                    ->where('is_active', true)
+                    ->when($editingClass, fn (Builder $current) => $current->orWhere('id', $editingClass->academic_year_id)))
                 ->orderByDesc('is_current')
                 ->orderByDesc('starts_on')
-                ->get(['id', 'parish_id', 'name', 'starts_on', 'ends_on', 'is_current']) : [],
+                ->get(['id', 'parish_id', 'name', 'starts_on', 'ends_on', 'is_current', 'is_active']) : [],
             'levels' => $parishId ? CatechismLevel::query()
                 ->where('parish_id', $parishId)
+                ->where(fn (Builder $query) => $query
+                    ->where('is_active', true)
+                    ->when($editingClass, fn (Builder $current) => $current->orWhere('id', $editingClass->catechism_level_id)))
                 ->orderBy('sort_order')
-                ->get(['id', 'parish_id', 'name', 'code', 'sort_order']) : [],
+                ->get(['id', 'parish_id', 'name', 'code', 'sort_order', 'is_active']) : [],
             'classrooms' => $parishId ? Classroom::query()
                 ->where('parish_id', $parishId)
+                ->where(fn (Builder $query) => $query
+                    ->where('is_active', true)
+                    ->when($editingClass?->classroom_id, fn (Builder $current, int $classroomId) => $current->orWhere('id', $classroomId)))
                 ->orderBy('name')
-                ->get(['id', 'parish_id', 'name', 'capacity']) : [],
+                ->get(['id', 'parish_id', 'name', 'capacity', 'is_active']) : [],
             'teachers' => $parishId ? TeacherProfile::query()
                 ->with('user:id,name,email,status,deleted_at')
                 ->where('parish_id', $parishId)
@@ -380,7 +396,7 @@ class AdminClassController extends ApiController
     {
         $class->load([
             ...$this->listRelations(),
-            'teachers.user:id,name,email,status,deleted_at',
+            'teachers.user:id,name,email,avatar_path,status,deleted_at',
             'enrollments.child:id,parish_id,code,full_name,status',
         ])->loadCount([
             'activeEnrollments as enrollments_count',
