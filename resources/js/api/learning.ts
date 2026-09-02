@@ -77,7 +77,7 @@ export const remindAnnouncement = (id: number) =>
 export const withdrawAnnouncement = (id: number) =>
     client.post<ApiResponse<Announcement>>(`/teacher/announcements/${id}/withdraw`);
 export const getNotifications = (unread = false) =>
-    client.get<ApiResponse<Announcement[]>>("/notifications", { params: { unread: unread || undefined } });
+    client.get<ApiResponse<Announcement[]>>("/notifications", { params: { unread: unread ? 1 : undefined } });
 export const readNotification = (id: number) =>
     client.post<ApiResponse<Announcement>>(`/notifications/${id}/read`);
 export const acknowledgeNotification = (id: number) =>

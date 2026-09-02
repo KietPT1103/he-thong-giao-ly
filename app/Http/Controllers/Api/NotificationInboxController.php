@@ -11,17 +11,20 @@ class NotificationInboxController extends ApiController
     public function index(Request $request)
     {
         abort_unless($request->user()->can('view-notifications'), 403);
+        $unread = $request->query('unread');
+        if (is_string($unread) && in_array(strtolower($unread), ['true', 'false'], true)) {
+            $request->merge(['unread' => strtolower($unread) === 'true']);
+        }
         $data = $request->validate([
             'unread' => ['nullable', 'boolean'],
         ]);
-        $base = $this->visibleQuery($request);
-        $unreadCount = (clone $base)->wherePivotNull('read_at')->count();
-        $announcements = $base
-            ->when($data['unread'] ?? false, fn ($query) => $query->wherePivotNull('read_at'))
+        $unreadCount = $this->visibleQuery($request)->wherePivotNull('read_at')->count();
+        $announcementQuery = $this->visibleQuery($request)
+            ->when($data['unread'] ?? false, fn ($query) => $query->whereNull('announcement_recipients.read_at'))
             ->orderByDesc('is_pinned')
             ->orderByDesc('sent_at')
-            ->orderByDesc('scheduled_at')
-            ->get()
+            ->orderByDesc('scheduled_at');
+        $announcements = $announcementQuery->get()
             ->map(fn (Announcement $announcement) => $this->payload($announcement));
 
         return $this->success($announcements, 'Đã tải hộp thư thông báo.', [

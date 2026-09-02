@@ -667,6 +667,32 @@ class LearningModuleTest extends TestCase
         );
     }
 
+    public function test_child_notification_filter_accepts_browser_boolean_query_values(): void
+    {
+        $teacher = User::where('email', 'teacher@giaoly.test')->firstOrFail();
+        $child = User::where('email', 'child@giaoly.test')->firstOrFail();
+        $announcement = Announcement::create([
+            'parish_id' => $child->child->parish_id,
+            'created_by' => $teacher->id,
+            'title' => 'Bài tập mới',
+            'body' => 'Em có một bài tập mới cần hoàn thành.',
+            'status' => Announcement::STATUS_SENT,
+            'sent_at' => now(),
+        ]);
+        $announcement->recipients()->attach($child->id);
+
+        $this->actingAs($child)
+            ->getJson('/api/notifications?unread=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.unread_count', 1);
+
+        $this->actingAs($child)
+            ->getJson('/api/notifications?unread=false')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
     public function test_submission_files_are_private_limited_and_reject_executables(): void
     {
         Storage::fake('local');

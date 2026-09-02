@@ -533,7 +533,20 @@ def build_document() -> Document:
     add_screenshot(doc, "01-dang-nhap.png", "Hình 1 - Màn hình đăng nhập hệ thống.", "Màn hình đăng nhập gồm trường email, mật khẩu và nút Đăng nhập.")
     add_callout(doc, "Bảo mật", "Không dùng chung tài khoản. Sau khi sử dụng trên thiết bị công cộng, mở menu tài khoản và chọn Đăng xuất.", tone="amber")
 
-    doc.add_heading("1.2 Cập nhật tài khoản", level=2)
+    doc.add_heading("1.2 Đăng ký tài khoản", level=2)
+    add_body(doc, "Người dùng chưa có tài khoản có thể tự đăng ký với vai trò Thiếu nhi hoặc Phụ huynh. Tài khoản Quản trị viên và Giáo lý viên do quản trị viên hệ thống cấp, không đăng ký tại màn hình này.")
+    for text in (
+        "Tại màn hình Đăng nhập, chọn Đăng ký ngay hoặc mở đường dẫn /register.",
+        "Nhập Họ và tên, Email và Số điện thoại Việt Nam đang sử dụng.",
+        "Chọn đúng vai trò Thiếu nhi hoặc Phụ huynh. Vai trò quyết định không gian được mở sau khi đăng ký.",
+        "Nhập Mật khẩu có ít nhất 8 ký tự, sau đó nhập lại chính xác ở trường Xác nhận mật khẩu.",
+        "Chọn Tạo tài khoản. Khi đăng ký thành công, hệ thống tự đăng nhập và chuyển đến không gian của vai trò đã chọn.",
+    ):
+        add_list_item(doc, text, number_list)
+    add_screenshot(doc, "01b-dang-ky.png", "Hình 2 - Màn hình đăng ký tài khoản.", "Biểu mẫu đăng ký gồm thông tin cá nhân, lựa chọn vai trò Thiếu nhi hoặc Phụ huynh và mật khẩu xác nhận.")
+    add_callout(doc, "Sau khi đăng ký", "Tài khoản Thiếu nhi mới chưa tự được xếp lớp; tài khoản Phụ huynh mới chưa tự liên kết với hồ sơ con. Hãy liên hệ quản trị viên để hoàn tất xếp lớp hoặc liên kết gia đình.", tone="green")
+
+    doc.add_heading("1.3 Cập nhật tài khoản", level=2)
     add_body(doc, "Chọn khu vực tài khoản ở cuối thanh bên, sau đó chọn Tài khoản. Tại đây người dùng có thể xem và cập nhật thông tin cá nhân theo quyền được cấp.")
 
     doc.add_page_break()
@@ -545,30 +558,45 @@ def build_document() -> Document:
         "Theo dõi các chỉ số chuyên cần và phiên điểm danh gần đây để phát hiện dữ liệu cần xử lý.",
     ):
         add_list_item(doc, text, bullet_list)
-    add_screenshot(doc, "02-admin-tong-quan.png", "Hình 2 - Không gian tổng quan của Quản trị viên.", "Trang tổng quan quản trị với các chỉ số vận hành hệ thống.")
+    add_screenshot(doc, "02-admin-tong-quan.png", "Hình 3 - Không gian tổng quan của Quản trị viên.", "Trang tổng quan quản trị với các chỉ số vận hành hệ thống.")
 
-    doc.add_heading("2.2 Quản lý danh mục", level=2)
-    add_body(doc, "Thanh bên cho phép truy cập Quản lý tài khoản, Giáo xứ, Giáo lý viên, Phụ huynh, Thiếu nhi, Lớp học và Thông báo. Trong mỗi danh sách, sử dụng ô tìm kiếm và bộ lọc trước khi tạo mới hoặc cập nhật.")
-    add_screenshot(doc, "03-admin-danh-sach-lop.png", "Hình 3 - Danh sách lớp học và bộ lọc quản trị.", "Danh sách lớp học với bộ lọc giáo xứ, niên khóa, khối và trạng thái.")
+    doc.add_heading("2.2 Quản lý dữ liệu hệ thống", level=2)
+    add_body(doc, "Thanh bên cho phép truy cập Quản lý tài khoản, Giáo xứ, Giáo lý viên, Phụ huynh, Thiếu nhi, Danh mục lớp học, Lớp học và Thông báo. Trong mỗi danh sách, sử dụng ô tìm kiếm và bộ lọc trước khi tạo mới hoặc cập nhật.")
+    add_screenshot(doc, "03-admin-danh-sach-lop.png", "Hình 4 - Danh sách lớp học và bộ lọc quản trị.", "Danh sách lớp học với bộ lọc giáo xứ, niên khóa, khối và trạng thái.")
 
-    doc.add_heading("2.3 Chỉnh sửa và tổ chức lớp học", level=2)
+    doc.add_heading("2.3 Thiết lập Danh mục lớp học", level=2)
+    add_body(doc, "Mở Danh mục lớp học để quản lý dữ liệu dùng chung cho các lớp trong từng giáo xứ. Màn hình gồm ba tab Niên khóa, Khối giáo lý và Phòng học.")
+    for text in (
+        "Chọn đúng Giáo xứ đang quản lý trước khi thao tác.",
+        "Ở tab Niên khóa, nhập tên, ngày bắt đầu, ngày kết thúc và chọn Niên khóa hiện tại khi cần. Mỗi giáo xứ chỉ có một niên khóa hiện tại.",
+        "Ở tab Khối giáo lý, nhập tên khối, mã khối và thứ tự hiển thị.",
+        "Ở tab Phòng học, nhập tên phòng và sức chứa; sức chứa có thể để trống nếu chưa xác định.",
+        "Dùng nút bút chì để chỉnh sửa; dùng nút nguồn để Ngừng sử dụng hoặc Sử dụng lại danh mục.",
+        "Chỉ xóa danh mục chưa có lớp liên kết. Nếu nút xóa bị khóa, hãy chọn Ngừng sử dụng để giữ an toàn dữ liệu lịch sử.",
+    ):
+        add_list_item(doc, text, number_list)
+    add_screenshot(doc, "04-admin-danh-muc-lop.png", "Hình 5 - Màn hình Danh mục lớp học của Quản trị viên.", "Màn hình quản lý Niên khóa, Khối giáo lý và Phòng học theo giáo xứ, kèm trạng thái và số lớp sử dụng.")
+    add_callout(doc, "Quan trọng", "Tên danh mục là dữ liệu dùng chung. Khi đổi tên, mọi lớp đang sử dụng danh mục đó sẽ hiển thị tên mới; vì vậy hãy kiểm tra số lớp sử dụng trước khi lưu.", tone="amber")
+
+    doc.add_heading("2.4 Chỉnh sửa và tổ chức lớp học", level=2)
     for text in (
         "Từ Danh sách lớp học, chọn dòng lớp cần chỉnh sửa.",
-        "Kiểm tra Tên lớp, Mã lớp, Giáo xứ, Trạng thái, Niên khóa, Khối giáo lý và Phòng học.",
+        "Kiểm tra Tên lớp, Mã lớp, Giáo xứ và Trạng thái. Với Niên khóa, Khối giáo lý và Phòng học, chỉ chọn giá trị từ danh mục đã thiết lập; không đổi tên trực tiếp tại biểu mẫu lớp.",
+        "Nếu cần bổ sung hoặc đổi tên dữ liệu dùng chung, chọn Quản lý danh mục ở đầu biểu mẫu, cập nhật danh mục rồi quay lại lớp.",
         "Chọn Cập nhật lớp học để lưu; chọn Hủy bỏ để trả biểu mẫu về dữ liệu đã lưu gần nhất.",
         "Trong Tổng quan lớp học, dùng Quản lý danh sách, Phân công và Thiết lập để quản lý thiếu nhi, giáo lý viên và lịch học.",
     ):
         add_list_item(doc, text, number_list)
-    add_screenshot(doc, "04-admin-chinh-sua-lop.png", "Hình 4 - Màn hình chỉnh sửa lớp học.", "Màn hình chỉnh sửa lớp gồm biểu mẫu thông tin, lưu ý thay đổi và tổng quan lớp học.")
+    add_screenshot(doc, "04-admin-chinh-sua-lop.png", "Hình 6 - Màn hình chỉnh sửa lớp học.", "Màn hình chỉnh sửa lớp với nút Quản lý danh mục và các trường chọn Niên khóa, Khối giáo lý, Phòng học.")
     add_callout(doc, "Lưu ý", "Giáo lý viên không tự tạo lịch dạy. Quản trị viên thiết lập lịch học và phân công giáo lý viên phụ trách lớp.")
 
     doc.add_page_break()
     doc.add_heading("3. Hướng dẫn dành cho Giáo lý viên", level=1)
     doc.add_heading("3.1 Tổng quan và lớp phụ trách", level=2)
     add_body(doc, "Trang Tổng quan giúp giáo lý viên theo dõi lớp phụ trách, số thiếu nhi, phiên điểm danh và các công việc cần xử lý.")
-    add_screenshot(doc, "05-giao-ly-vien-tong-quan.png", "Hình 5 - Tổng quan của Giáo lý viên.", "Trang tổng quan giáo lý viên với số liệu và lớp phụ trách.")
+    add_screenshot(doc, "05-giao-ly-vien-tong-quan.png", "Hình 7 - Tổng quan của Giáo lý viên.", "Trang tổng quan giáo lý viên với số liệu và lớp phụ trách.")
     add_body(doc, "Mở Lớp của tôi, sau đó chọn một lớp để xem danh sách thiếu nhi, lịch học định kỳ và giáo lý viên phụ trách.")
-    add_screenshot(doc, "06-giao-ly-vien-chi-tiet-lop.png", "Hình 6 - Chi tiết lớp học của Giáo lý viên.", "Trang chi tiết lớp học với thông tin lớp, danh sách thiếu nhi và lịch học.")
+    add_screenshot(doc, "06-giao-ly-vien-chi-tiet-lop.png", "Hình 8 - Chi tiết lớp học của Giáo lý viên.", "Trang chi tiết lớp học với thông tin lớp, danh sách thiếu nhi và lịch học.")
 
     doc.add_heading("3.2 Điểm danh và xem lịch sử phiên", level=2)
     for text in (
@@ -578,14 +606,14 @@ def build_document() -> Document:
         "Mở tab Danh sách phiên để lọc các phiên đang diễn ra, đã kết thúc hoặc đã hủy.",
     ):
         add_list_item(doc, text, number_list)
-    add_screenshot(doc, "07-danh-sach-phien-diem-danh.png", "Hình 7 - Danh sách phiên điểm danh của lớp.", "Danh sách phiên điểm danh với bộ lọc trạng thái và menu thao tác.")
+    add_screenshot(doc, "07-danh-sach-phien-diem-danh.png", "Hình 9 - Danh sách phiên điểm danh của lớp.", "Danh sách phiên điểm danh với bộ lọc trạng thái và menu thao tác.")
     add_body(doc, "Để xem ai đã được ghi nhận trong một phiên, mở menu ba chấm ở cuối dòng và chọn Xem chi tiết. Danh sách hiển thị thiếu nhi, tài khoản, trạng thái và giờ ghi nhận ngay trên trang hiện tại.")
-    add_screenshot(doc, "08-chi-tiet-phien-diem-danh.png", "Hình 8 - Popup danh sách tài khoản đã điểm danh.", "Popup hiển thị tài khoản thiếu nhi đã điểm danh trong phiên được chọn.")
+    add_screenshot(doc, "08-chi-tiet-phien-diem-danh.png", "Hình 10 - Popup danh sách tài khoản đã điểm danh.", "Popup hiển thị tài khoản thiếu nhi đã điểm danh trong phiên được chọn.")
 
     doc.add_page_break()
     doc.add_heading("3.3 Quản lý và tạo bài tập", level=2)
     add_body(doc, "Màn Bài tập gồm khu vực việc cần xử lý và danh mục bài tập. Giáo lý viên có thể tìm theo tên, lọc trạng thái, lọc lớp và tải lại danh sách.")
-    add_screenshot(doc, "09-giao-ly-vien-bai-tap.png", "Hình 9 - Danh mục bài tập của Giáo lý viên.", "Trang bài tập giáo lý viên với hàng tìm kiếm, lọc trạng thái và lọc lớp.")
+    add_screenshot(doc, "09-giao-ly-vien-bai-tap.png", "Hình 11 - Danh mục bài tập của Giáo lý viên.", "Trang bài tập giáo lý viên với hàng tìm kiếm, lọc trạng thái và lọc lớp.")
     add_body(doc, "Chọn Tạo bài tập để bắt đầu quy trình năm bước:")
     for text in (
         "Thông tin - nhập tên, mô tả, hình thức, thang điểm, điểm đạt và tệp đính kèm.",
@@ -595,7 +623,7 @@ def build_document() -> Document:
         "Xem trước - kiểm tra toàn bộ đề trước khi Lưu bản nháp hoặc Phát hành bài tập.",
     ):
         add_list_item(doc, text, number_list, bold_prefix=text.split(" - ")[0] + " -")
-    add_screenshot(doc, "10-tao-bai-tap.png", "Hình 10 - Bước Thông tin trong quy trình tạo bài tập.", "Màn hình tạo bài tập năm bước với biểu mẫu thông tin bài tập.")
+    add_screenshot(doc, "10-tao-bai-tap.png", "Hình 12 - Bước Thông tin trong quy trình tạo bài tập.", "Màn hình tạo bài tập năm bước với biểu mẫu thông tin bài tập.")
     add_callout(doc, "Bản nháp", "Bản nháp chưa được gửi đến Thiếu nhi. Sau khi kiểm tra đủ câu hỏi, người nhận và thời gian, chọn Phát hành bài tập ở bước Xem trước.", tone="green")
 
     doc.add_heading("3.4 Chấm bài và thông báo lớp", level=2)
@@ -609,20 +637,40 @@ def build_document() -> Document:
     doc.add_page_break()
     doc.add_heading("4. Hướng dẫn dành cho Thiếu nhi", level=1)
     doc.add_heading("4.1 Không gian học tập", level=2)
-    add_body(doc, "Thiếu nhi sử dụng Tổng quan để xem các thông tin gần nhất và dùng thanh bên để mở Lịch học, Thánh lễ, Bài tập, Thông báo, Điểm thưởng và Quét QR điểm danh.")
-    add_screenshot(doc, "11-thieu-nhi-tong-quan.png", "Hình 11 - Không gian tổng quan của Thiếu nhi.", "Trang tổng quan của tài khoản thiếu nhi.")
+    add_body(doc, "Sau khi đăng nhập, Thiếu nhi được chuyển đến Lịch học. Thanh bên chỉ hiển thị các chức năng phục vụ việc học và điểm danh: Lịch học, Bài tập, Thông báo và Quét QR điểm danh. Trên điện thoại, chọn nút menu ở góc trên để mở thanh điều hướng.")
 
-    doc.add_heading("4.2 Làm và nộp bài tập", level=2)
+    doc.add_heading("4.2 Xem lịch học", level=2)
     for text in (
-        "Mở Bài tập và chọn tab Cần làm để xem bài chưa hoàn thành.",
-        "Chọn bài tập, đọc hướng dẫn và thời hạn trước khi bắt đầu.",
-        "Trả lời từng câu; hệ thống tự động lưu tiến độ khi bài cho phép tiếp tục.",
-        "Kiểm tra câu trả lời rồi chọn Nộp bài. Bài đã nộp xuất hiện trong tab Đã nộp.",
+        "Mở Lịch học để xem lớp, phòng học và Giáo lý viên phụ trách.",
+        "Khung Buổi học tiếp theo hiển thị ngày và giờ của buổi gần nhất.",
+        "Trong lịch tuần, dùng nút mũi tên để chuyển tuần hoặc chọn Hôm nay để quay lại tuần hiện tại.",
+        "Mỗi buổi học hiển thị khung giờ, tên lớp và phòng học. Nếu thông tin chưa đúng, liên hệ Giáo lý viên hoặc quản trị viên.",
     ):
         add_list_item(doc, text, number_list)
-    add_screenshot(doc, "12-thieu-nhi-bai-tap.png", "Hình 12 - Danh sách bài tập của Thiếu nhi.", "Trang bài tập của thiếu nhi với các tab Cần làm, Đã nộp và Tất cả.")
+    add_screenshot(doc, "11-thieu-nhi-lich-hoc.png", "Hình 13 - Lịch học tuần của Thiếu nhi.", "Màn hình Lịch học hiển thị buổi học tiếp theo, thông tin lớp và lịch theo từng ngày trong tuần.")
 
-    doc.add_heading("4.3 Điểm danh bằng QR", level=2)
+    doc.add_heading("4.3 Làm và nộp bài tập", level=2)
+    for text in (
+        "Mở Bài tập và chọn Cần làm để xem bài chưa hoàn thành; dùng Đã nộp hoặc Tất cả để xem các nhóm còn lại.",
+        "Chọn Bắt đầu hoặc Tiếp tục, sau đó kiểm tra hạn nộp, thời gian làm, số lượt và số câu hỏi.",
+        "Trả lời từng câu. Hệ thống tự động lưu tiến độ; có thể chọn Lưu ngay trước khi rời màn hình.",
+        "Nếu bài tập cho phép, chọn Thêm tệp để đính kèm tệp bài làm theo định dạng và dung lượng hiển thị.",
+        "Kiểm tra tiến độ rồi chọn Nộp bài. Sau khi nộp, bài xuất hiện trong Đã nộp và không thể sửa trừ khi Giáo lý viên mở lại.",
+        "Khi Giáo lý viên công bố kết quả, mở lại bài để xem điểm và nhận xét.",
+    ):
+        add_list_item(doc, text, number_list)
+    add_screenshot(doc, "12-thieu-nhi-bai-tap.png", "Hình 14 - Danh sách bài tập của Thiếu nhi.", "Trang Bài tập với các tab Cần làm, Đã nộp và Tất cả; bài mới sẽ xuất hiện trong vùng danh sách.")
+
+    doc.add_heading("4.4 Theo dõi thông báo", level=2)
+    for text in (
+        "Mở Thông báo để xem thông tin từ Giáo lý viên và các cập nhật liên quan đến bài tập.",
+        "Dùng Tất cả để xem toàn bộ hoặc Chưa đọc để tập trung vào thông báo mới.",
+        "Mở một thông báo để xem nội dung và đánh dấu đã đọc; chọn Đọc tất cả khi muốn xử lý toàn bộ thông báo chưa đọc.",
+    ):
+        add_list_item(doc, text, number_list)
+    add_screenshot(doc, "13-thieu-nhi-thong-bao.png", "Hình 15 - Màn hình Thông báo của Thiếu nhi.", "Màn hình Thông báo có bộ lọc Tất cả, Chưa đọc và hành động Đọc tất cả.")
+
+    doc.add_heading("4.5 Điểm danh bằng QR", level=2)
     for text in (
         "Mở Quét QR điểm danh trên thiết bị sẽ dùng thường xuyên.",
         "Chọn Kích hoạt điện thoại này. Mỗi tài khoản chỉ nên gắn với thiết bị của chính mình.",
@@ -630,14 +678,17 @@ def build_document() -> Document:
         "Nếu camera không khả dụng, nhập đường dẫn hoặc mã do giáo lý viên cung cấp rồi chọn Điểm danh.",
     ):
         add_list_item(doc, text, number_list)
-    add_screenshot(doc, "13-thieu-nhi-qr.png", "Hình 13 - Màn hình kích hoạt và quét QR điểm danh.", "Màn hình điểm danh QR của thiếu nhi với kích hoạt thiết bị, camera và nhập mã thủ công.")
+    add_screenshot(doc, "14-thieu-nhi-qr.png", "Hình 16 - Màn hình kích hoạt và quét QR điểm danh.", "Màn hình điểm danh QR của Thiếu nhi với kích hoạt thiết bị, camera và nhập mã thủ công.")
     add_callout(doc, "Không chia sẻ", "Mỗi tài khoản chỉ được điểm danh một lần cho mỗi buổi học. Không gửi tài khoản hoặc mã phiên cho người khác.", tone="amber")
+
+    doc.add_heading("4.6 Quản lý tài khoản", level=2)
+    add_body(doc, "Chọn khu vực tài khoản ở cuối thanh bên để mở Tài khoản hoặc Đăng xuất. Trong trang Tài khoản, kiểm tra thông tin cá nhân và đổi mật khẩu khi cần. Luôn đăng xuất sau khi sử dụng thiết bị dùng chung.")
 
     doc.add_page_break()
     doc.add_heading("5. Hướng dẫn dành cho Phụ huynh", level=1)
     doc.add_heading("5.1 Theo dõi tổng quan", level=2)
     add_body(doc, "Không gian Phụ huynh tập trung vào việc theo dõi hồ sơ thiếu nhi đã liên kết, lịch học, lịch sử tham dự, bài tập, điểm thưởng và thông báo.")
-    add_screenshot(doc, "14-phu-huynh-tong-quan.png", "Hình 14 - Không gian tổng quan của Phụ huynh.", "Trang tổng quan của tài khoản phụ huynh.")
+    add_screenshot(doc, "14-phu-huynh-tong-quan.png", "Hình 17 - Không gian tổng quan của Phụ huynh.", "Trang tổng quan của tài khoản phụ huynh.")
 
     doc.add_heading("5.2 Xem hồ sơ thiếu nhi đã liên kết", level=2)
     for text in (
@@ -647,13 +698,15 @@ def build_document() -> Document:
         "Thiếu nhi sử dụng tài khoản riêng để quét QR; phụ huynh không quét thay bằng tài khoản phụ huynh.",
     ):
         add_list_item(doc, text, number_list)
-    add_screenshot(doc, "15-phu-huynh-thieu-nhi.png", "Hình 15 - Danh sách thiếu nhi liên kết với Phụ huynh.", "Trang Các con của tôi hiển thị hồ sơ thiếu nhi đã liên kết.")
+    add_screenshot(doc, "15-phu-huynh-thieu-nhi.png", "Hình 18 - Danh sách thiếu nhi liên kết với Phụ huynh.", "Trang Các con của tôi hiển thị hồ sơ thiếu nhi đã liên kết.")
 
     doc.add_page_break()
     doc.add_heading("6. Xử lý tình huống thường gặp", level=1)
     troubleshooting = [
         ("Không đăng nhập được", "Kiểm tra email, mật khẩu và trạng thái tài khoản. Nếu vẫn lỗi, liên hệ quản trị viên để xác nhận tài khoản chưa bị khóa."),
+        ("Đăng ký xong nhưng chưa thấy lớp hoặc hồ sơ con", "Tự đăng ký chỉ tạo tài khoản và hồ sơ theo vai trò. Quản trị viên cần xếp lớp cho Thiếu nhi hoặc liên kết hồ sơ con với tài khoản Phụ huynh."),
         ("Không thấy chức năng", "Chức năng được ẩn theo vai trò và quyền. Đăng xuất, đăng nhập lại; nếu vẫn thiếu, đề nghị quản trị viên kiểm tra phân quyền."),
+        ("Không thấy niên khóa, khối hoặc phòng khi sửa lớp", "Mở Danh mục lớp học, chọn đúng giáo xứ và kiểm tra danh mục đang ở trạng thái Đang sử dụng. Danh mục đã ngừng sử dụng không xuất hiện cho lựa chọn mới."),
         ("Không thấy lớp hoặc thiếu nhi", "Giáo lý viên chỉ thấy lớp được phân công. Quản trị viên cần kiểm tra phân công, niên khóa và trạng thái ghi danh."),
         ("Không lưu được bài tập", "Kiểm tra đủ tên bài, câu hỏi, điểm, người nhận và thời gian. Ở bước Xem trước, đọc thông báo lỗi và quay lại đúng bước để bổ sung."),
         ("Không quét được QR", "Kiểm tra thiết bị đã kích hoạt, quyền camera, phiên còn hiệu lực và tài khoản chưa điểm danh. Có thể dùng mã thủ công khi camera không khả dụng."),
@@ -674,6 +727,7 @@ def build_document() -> Document:
     set_fixed_table_geometry(table, [2760, 6600])
     set_table_borders(table)
 
+    doc.add_page_break()
     doc.add_heading("7. Phụ lục - tài khoản dữ liệu mẫu", level=1)
     add_callout(doc, "Chỉ dùng môi trường local", "Các tài khoản dưới đây phục vụ kiểm thử nội bộ. Khi triển khai thật, sử dụng tài khoản do quản trị viên tạo và tuyệt đối không dùng mật khẩu mẫu.", tone="amber")
     add_demo_accounts_table(doc)
