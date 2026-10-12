@@ -1,0 +1,72 @@
+name: Deploy frontend to DirectAdmin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'resources/js/**'
+      - 'resources/css/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'tsconfig.json'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: directadmin-frontend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run build
+      - name: Save build for recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: public/build/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Install FTPS client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Upload assets, then publish manifest
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PORT: ${{ vars.FTP_PORT || '21' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${FTP_HOST:?Missing FTP_HOST secret}"
+          : "${FTP_USERNAME:?Missing FTP_USERNAME secret}"
+          : "${LFTP_PASSWORD:?Missing FTP_PASSWORD secret}"
+          [[ "$FTP_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || { echo 'FTP_HOST must be a hostname or IPv4 address, without URL or port.'; exit 1; }
+          [[ "$FTP_PORT" =~ ^[0-9]+$ ]] || { echo 'Invalid FTP_PORT'; exit 1; }
+          test -s public/build/manifest.json
+          lftp --env-password -u "$FTP_USERNAME" -p "$FTP_PORT" "ftp://$FTP_HOST" <<'LFTP'
+          set cmd:fail-exit yes
+          set ftp:ssl-force yes
+          set ftp:ssl-protect-data yes
+          set ssl:verify-certificate yes
+          set net:timeout 30
+          set net:max-retries 2
+          cd domains/giaoxucairang.com/public_html/build
+          mirror --reverse --no-perms --exclude '^manifest\.json$' public/build/ ./
+          put public/build/manifest.json -o manifest.json
+          bye
+          LFTP
