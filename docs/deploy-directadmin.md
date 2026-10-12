@@ -10,13 +10,35 @@ Frontend mới phải tương thích với backend đang chạy.
 
 1. Trong Settings → Secrets and variables → Actions, thêm repository secrets
    `FTP_HOST`, `FTP_USERNAME`, `FTP_PASSWORD`. Không đưa mật khẩu vào code.
-2. Workflow dùng explicit FTPS, mặc định port 21. Nếu hosting cấp port khác,
-   thêm repository variable `FTP_PORT`. SFTP/SSH cần workflow khác.
+2. Workflow dùng explicit FTPS, mặc định port 21, hostname
+   `melody.maychu.cloud` đã kiểm tra chứng chỉ TLS. Có thể đổi hostname bằng
+   repository variable `FTP_TLS_HOST`, port bằng `FTP_PORT`.
+   Secret `FTP_HOST` cũ không còn được dùng trong workflow này.
 3. Xác nhận tài khoản FTP nhìn thấy đường dẫn `domains/giaoxucairang.com/`.
    Trước lần đầu, tải bản sao `public_html/build/` để có thể khôi phục.
 4. Commit và push file workflow lên `main`. Trong Actions chọn
    **Deploy frontend to DirectAdmin** → **Run workflow** → branch `main`.
    Các lần push thay đổi JS/CSS hoặc cấu hình build lên main cũng tự deploy.
+
+## Runner và phương án dự phòng
+
+Workflow mặc định dùng `windows-latest` để thử nhóm runner khác khi Ubuntu
+không kết nối được tới hosting. Đây là phương án thử kết nối khác, chưa chứng
+minh Windows runner vượt qua được giới hạn mạng của hosting. Trong Run workflow
+có thể chọn Windows hoặc Ubuntu; variable `DEPLOY_RUNNER` thay đổi runner mặc
+định cho push. Cả hai vẫn yêu cầu FTPS và kiểm tra chứng chỉ.
+
+Nếu GitHub-hosted runners đều timeout, có thể deploy từ máy Windows có kết nối:
+
+```powershell
+powershell -NoProfile -File scripts/deploy-frontend.ps1
+```
+
+Script kiểm tra TCP, chạy npm ci/type-check/build, hỏi credentials FTP rồi upload
+assets và manifest cuối cùng. Credentials không được lưu vào file hay Git.
+Để chỉ kiểm tra kết nối: thêm `-CheckOnly`. Deploy thủ công từ máy không tự chạy
+khi push; cần thiết lập self-hosted runner riêng nếu muốn tự động từ máy/VPS.
+Script Windows dùng curl, giữ lại assets cũ, không đảm bảo upload manifest nguyên tử.
 
 Type check và build phải thành công trước upload. Workflow upload assets trước,
 manifest sau, không xóa assets cũ, không cập nhật `.env`, `storage`, backend,

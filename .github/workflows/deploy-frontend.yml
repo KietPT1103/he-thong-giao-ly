@@ -11,7 +11,16 @@ on:
       - 'vite.config.js'
       - 'tsconfig.json'
       - '.github/workflows/deploy-frontend.yml'
+      - 'scripts/deploy-frontend.ps1'
   workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner to use for the hosting connection
+        type: choice
+        default: windows-latest
+        options:
+          - windows-latest
+          - ubuntu-latest
 
 permissions:
   contents: read
@@ -23,7 +32,7 @@ concurrency:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || vars.DEPLOY_RUNNER || 'windows-latest' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +51,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Install FTPS client
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y lftp
       - name: Check FTP port from GitHub runner
         env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_HOST: ${{ vars.FTP_TLS_HOST || 'melody.maychu.cloud' }}
           FTP_PORT: ${{ vars.FTP_PORT || '21' }}
+        shell: bash
         run: |
           node --input-type=module <<'NODE'
           import net from 'node:net';
@@ -71,8 +82,9 @@ jobs:
           });
           NODE
       - name: Upload assets, then publish manifest
+        if: runner.os == 'Linux'
         env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_HOST: ${{ vars.FTP_TLS_HOST || 'melody.maychu.cloud' }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_PORT: ${{ vars.FTP_PORT || '21' }}
@@ -97,3 +109,12 @@ jobs:
           put public/build/manifest.json -o manifest.json
           bye
           LFTP
+      - name: Upload frontend using Windows FTPS client
+        if: runner.os == 'Windows'
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_HOST: ${{ vars.FTP_TLS_HOST || 'melody.maychu.cloud' }}
+          FTP_PORT: ${{ vars.FTP_PORT || '21' }}
+        shell: pwsh
+        run: ./scripts/deploy-frontend.ps1 -SkipBuild -NonInteractive -FtpHost $env:FTP_HOST -FtpPort ([int]$env:FTP_PORT)
