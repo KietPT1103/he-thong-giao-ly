@@ -43,6 +43,33 @@ jobs:
           retention-days: 30
       - name: Install FTPS client
         run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Check FTP port from GitHub runner
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_PORT: ${{ vars.FTP_PORT || '21' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import net from 'node:net';
+          const host = process.env.FTP_HOST;
+          const port = Number(process.env.FTP_PORT);
+          if (!host || !Number.isInteger(port) || port < 1 || port > 65535) {
+            throw new Error('Missing FTP_HOST or invalid FTP_PORT');
+          }
+          await new Promise((resolve, reject) => {
+            const socket = net.createConnection({ host, port });
+            socket.setTimeout(10000);
+            socket.once('connect', () => {
+              console.log('FTP TCP port reachable from GitHub runner.');
+              socket.destroy();
+              resolve();
+            });
+            socket.once('timeout', () => {
+              socket.destroy();
+              reject(new Error('FTP TCP timeout: confirm host/port and hosting firewall access for GitHub runners.'));
+            });
+            socket.once('error', reject);
+          });
+          NODE
       - name: Upload assets, then publish manifest
         env:
           FTP_HOST: ${{ secrets.FTP_HOST }}
@@ -63,8 +90,8 @@ jobs:
           set ftp:ssl-force yes
           set ftp:ssl-protect-data yes
           set ssl:verify-certificate yes
-          set net:timeout 30
-          set net:max-retries 2
+          set net:timeout 15
+          set net:max-retries 1
           cd domains/giaoxucairang.com/public_html/build
           mirror --reverse --no-perms --exclude '^manifest\.json$' public/build/ ./
           put public/build/manifest.json -o manifest.json

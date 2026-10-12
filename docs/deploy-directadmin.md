@@ -31,6 +31,10 @@ Artifact build được giữ 30 ngày trên GitHub.
   không tắt kiểm tra chứng chỉ.
 - Lỗi AUTH TLS: xác nhận hosting có hỗ trợ explicit FTPS.
 - Lỗi login: kiểm tra credentials FTP, có thể khác credentials DirectAdmin.
+- Bước `Check FTP port from GitHub runner` timeout: xác nhận host/port và
+  yêu cầu hosting kiểm tra firewall đối với GitHub-hosted runners.
+- TCP thành công nhưng `cd` timeout: cần hosting kiểm tra FTPS/TLS, log đăng nhập
+  và kết nối passive; TCP thành công chưa xác nhận được đăng nhập FTPS.
 - Lỗi `cd`: kiểm tra thư mục gốc khi đăng nhập FTP và sửa đường dẫn workflow.
 - Thành công: mở website, refresh và kiểm tra giao diện, Network/Console.
 
